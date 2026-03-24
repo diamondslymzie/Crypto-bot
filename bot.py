@@ -3,7 +3,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
-    ContextTypes, MessageHandler, filters
+    ContextTypes
 )
 from trader import Trader
 from ai_strategy import AIStrategy
@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
+
+SYMBOLS = [
+    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT",
+    "BNB/USDT", "ADA/USDT", "DOGE/USDT", "TRX/USDT",
+    "AVAX/USDT", "MATIC/USDT", "LTC/USDT", "DOT/USDT"
+]
+
+AUTO_TRADE_AMOUNT = 5
 
 trader = Trader()
 ai = AIStrategy()
@@ -56,7 +64,7 @@ async def portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @auth
 async def analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    symbol = context.args[0].upper() if context.args else "BTCUSDT"
+    symbol = context.args[0].upper() + "/USDT" if context.args else "BTC/USDT"
     await update.message.reply_text(f"🧠 Running AI analysis on *{symbol}*...", parse_mode="Markdown")
     try:
         analysis = ai.analyze(symbol)
@@ -67,9 +75,9 @@ async def analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @auth
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
-        await update.message.reply_text("Usage: `/buy <SYMBOL> <USDT_AMOUNT>`\nExample: `/buy BTC 50`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: `/buy <SYMBOL> <USDT_AMOUNT>`\nExample: `/buy BTC 5`", parse_mode="Markdown")
         return
-    symbol = context.args[0].upper() + "USDT"
+    symbol = context.args[0].upper() + "/USDT"
     amount = float(context.args[1])
     await update.message.reply_text(f"⏳ Placing buy order for ${amount} of {symbol}...")
     try:
@@ -83,7 +91,7 @@ async def sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await update.message.reply_text("Usage: `/sell <SYMBOL> <QUANTITY>`\nExample: `/sell BTC 0.001`", parse_mode="Markdown")
         return
-    symbol = context.args[0].upper() + "USDT"
+    symbol = context.args[0].upper() + "/USDT"
     quantity = float(context.args[1])
     await update.message.reply_text(f"⏳ Placing sell order for {quantity} {symbol}...")
     try:
@@ -95,13 +103,36 @@ async def sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @auth
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     auto = context.bot_data.get("auto_trade", False)
-    symbol = context.bot_data.get("auto_symbol", "BTCUSDT")
     await update.message.reply_text(
         f"🤖 *Bot Status*\n\n"
         f"Auto-trade: {'✅ ON' if auto else '❌ OFF'}\n"
-        f"Symbol: `{symbol}`",
+        f"Amount per trade: ${AUTO_TRADE_AMOUNT}\n"
+        f"Tracking: {len(SYMBOLS)} coins",
         parse_mode="Markdown"
     )
+
+@auth
+async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global AUTO_TRADE_AMOUNT
+    if not context.args:
+        await update.message.reply_text(
+            f"💵 Current auto-trade amount: *${AUTO_TRADE_AMOUNT}*\n\n"
+            f"To change it use:\n`/setamount 10`",
+            parse_mode="Markdown"
+        )
+        return
+    try:
+        new_amount = float(context.args[0])
+        if new_amount < 1:
+            await update.message.reply_text("⚠️ Minimum amount is $1")
+            return
+        AUTO_TRADE_AMOUNT = new_amount
+        await update.message.reply_text(
+            f"✅ Auto-trade amount updated to *${AUTO_TRADE_AMOUNT}*",
+            parse_mode="Markdown"
+        )
+    except ValueError:
+        await update.message.reply_text("⚠️ Please enter a valid number\nExample: `/setamount 10`", parse_mode="Markdown")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -116,16 +147,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(f"❌ Error: {e}")
 
     elif data == "ai_analysis":
-        await query.edit_message_text("🧠 Analyzing BTC market...")
+        await query.edit_message_text("🧠 Analyzing BTC/USDT market...")
         try:
-            analysis = ai.analyze("BTCUSDT")
+            analysis = ai.analyze("BTC/USDT")
             await query.edit_message_text(analysis, parse_mode="Markdown")
         except Exception as e:
             await query.edit_message_text(f"❌ Error: {e}")
 
     elif data == "buy_menu":
         await query.edit_message_text(
-            "📈 *Buy Crypto*\n\nUse the command:\n`/buy <SYMBOL> <USDT_AMOUNT>`\n\nExample: `/buy BTC 50`",
+            "📈 *Buy Crypto*\n\nUse the command:\n`/buy <SYMBOL> <USDT_AMOUNT>`\n\nExample: `/buy BTC 5`",
             parse_mode="Markdown"
         )
 
@@ -140,27 +171,42 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.bot_data["auto_trade"] = not current
         state = "✅ ON" if not current else "❌ OFF"
         await query.edit_message_text(
-            f"🔄 Auto-trading is now *{state}*",
+            f"🔄 Auto-trading is now *{state}*\n\n"
+            f"Tracking {len(SYMBOLS)} coins\n"
+            f"Amount per trade: ${AUTO_TRADE_AMOUNT}\n"
+            f"Checks every 60 minutes",
             parse_mode="Markdown"
         )
 
 async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
     if not context.bot_data.get("auto_trade", False):
         return
-    symbol = context.bot_data.get("auto_symbol", "BTCUSDT")
+
     chat_id = context.job.chat_id
-    try:
-        signal = ai.get_signal(symbol)
-        await context.bot.send_message(chat_id, f"🤖 *Auto-Trade Check — {symbol}*\n\n{signal}", parse_mode="Markdown")
-        action = ai.get_action(symbol)
-        if action == "BUY":
-            result = trader.market_buy(symbol, amount_usdt=20)
-            await context.bot.send_message(chat_id, f"📈 *Auto-Buy Executed*\n\n{result}", parse_mode="Markdown")
-        elif action == "SELL":
-            result = trader.auto_sell(symbol)
-            await context.bot.send_message(chat_id, f"📉 *Auto-Sell Executed*\n\n{result}", parse_mode="Markdown")
-    except Exception as e:
-        await context.bot.send_message(chat_id, f"⚠️ Auto-trade error: {e}")
+    await context.bot.send_message(chat_id, "🔍 *Auto-Trade Scan Starting...*\nChecking all coins...", parse_mode="Markdown")
+
+    for symbol in SYMBOLS:
+        try:
+            action = ai.get_action(symbol)
+            signal = ai.get_signal(symbol)
+            if action == "BUY":
+                result = trader.market_buy(symbol, amount_usdt=AUTO_TRADE_AMOUNT)
+                await context.bot.send_message(
+                    chat_id,
+                    f"📈 *Auto-Buy — {symbol}*\n\n{signal}\n\n{result}",
+                    parse_mode="Markdown"
+                )
+            elif action == "SELL":
+                result = trader.auto_sell(symbol)
+                await context.bot.send_message(
+                    chat_id,
+                    f"📉 *Auto-Sell — {symbol}*\n\n{signal}\n\n{result}",
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            logger.error(f"Auto-trade error for {symbol}: {e}")
+
+    await context.bot.send_message(chat_id, "✅ *Scan Complete!* Next check in 60 minutes.", parse_mode="Markdown")
 
 def main():
     if not TELEGRAM_TOKEN:
@@ -172,6 +218,7 @@ def main():
     app.add_handler(CommandHandler("buy", buy))
     app.add_handler(CommandHandler("sell", sell))
     app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("setamount", set_amount))
     app.add_handler(CallbackQueryHandler(button_handler))
     job_queue = app.job_queue
     job_queue.run_repeating(
