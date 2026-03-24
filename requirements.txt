@@ -1,5 +1,5 @@
 python-telegram-bot[job-queue]==21.6
-python-binance==1.0.19
+ccxt>=4.2.0
 anthropic>=0.25.0
 pandas>=2.0.0
 ta>=0.11.0
