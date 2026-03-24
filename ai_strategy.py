@@ -1,26 +1,24 @@
 import os
 import json
+import ccxt
 import anthropic
 import pandas as pd
 import ta
-from binance.client import Client
 from datetime import datetime
 
 class AIStrategy:
     def __init__(self):
         self.anthropic = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        api_key = os.getenv("BINANCE_API_KEY")
-        api_secret = os.getenv("BINANCE_API_SECRET")
-        testnet = os.getenv("BINANCE_TESTNET", "true").lower() == "true"
-        self.binance = Client(api_key, api_secret, testnet=testnet)
+        self.exchange = ccxt.bitget({
+            'apiKey': os.getenv("BITGET_API_KEY"),
+            'secret': os.getenv("BITGET_SECRET_KEY"),
+            'password': os.getenv("BITGET_PASSPHRASE"),
+            'options': {'defaultType': 'spot'},
+        })
 
     def _get_klines(self, symbol: str, interval="1h", limit=100) -> pd.DataFrame:
-        klines = self.binance.get_klines(symbol=symbol, interval=interval, limit=limit)
-        df = pd.DataFrame(klines, columns=[
-            "open_time", "open", "high", "low", "close", "volume",
-            "close_time", "quote_volume", "trades", "taker_buy_base",
-            "taker_buy_quote", "ignore"
-        ])
+        ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe=interval, limit=limit)
+        df = pd.DataFrame(ohlcv, columns=["open_time", "open", "high", "low", "close", "volume"])
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = df[col].astype(float)
         df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
@@ -108,7 +106,7 @@ Indicators:
             emoji = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(signal, "⏸️")
             return f"{emoji} Signal: *{signal}* (Confidence: {confidence})\n_{reason}_"
         except Exception:
-            return f"Signal check completed."
+            return "Signal check completed."
 
     def get_action(self, symbol: str) -> str:
         df = self._get_klines(symbol)
