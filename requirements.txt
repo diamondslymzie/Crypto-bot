@@ -1,0 +1,6 @@
+python-telegram-bot[job-queue]==21.6
+python-binance==1.0.19
+anthropic>=0.25.0
+pandas>=2.0.0
+ta>=0.11.0
+python-dotenv>=1.0.0
