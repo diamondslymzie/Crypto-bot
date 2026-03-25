@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>Leverage Liquid</title>
+<title>Liquid Leverage</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -20,6 +20,7 @@
   --green: #00e676;
   --red: #ff3d57;
   --yellow: #ffd600;
+  --purple: #b44aff;
   --text: #e8eaf0;
   --text2: #8892a4;
   --text3: #4a5568;
@@ -39,9 +40,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .nav{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
 .nav::-webkit-scrollbar{display:none}
-.nav-btn{flex:1;min-width:60px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:600;letter-spacing:0.05em;color:var(--text3);border:none;background:none;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;font-family:var(--font);}
+.nav-btn{flex:1;min-width:55px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:8px;font-weight:600;letter-spacing:0.05em;color:var(--text3);border:none;background:none;cursor:pointer;transition:all 0.2s;border-bottom:2px solid transparent;font-family:var(--font);}
 .nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-.nav-btn span:first-child{font-size:18px}
+.nav-btn span:first-child{font-size:16px}
 .content{flex:1;overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .content::-webkit-scrollbar{width:3px}
 .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -106,11 +107,14 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
 .strategy-name{font-size:13px;font-weight:600}
 .strategy-desc{font-size:10px;color:var(--text2);margin-top:2px}
 .strategy-badge{font-size:10px;padding:3px 8px;border-radius:6px;font-family:var(--mono);background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.2);}
-.prediction-card{background:linear-gradient(135deg,rgba(0,212,255,0.05),rgba(0,153,204,0.03));border:1px solid rgba(0,212,255,0.15);border-radius:16px;padding:16px;margin-bottom:12px;}
-.pred-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pred-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden;}
+.pred-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,0.3),transparent);}
+.pred-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .pred-coin{font-size:16px;font-weight:800}
+.pred-price{font-size:13px;font-family:var(--mono);color:var(--accent);margin-bottom:4px}
+.pred-change{font-size:11px;font-family:var(--mono);margin-bottom:10px}
 .pred-timeframe{font-size:10px;color:var(--accent);font-family:var(--mono);padding:3px 8px;border-radius:6px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2)}
-.pred-bar-wrap{margin:12px 0}
+.pred-bar-wrap{margin:10px 0}
 .pred-bar-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:6px;font-family:var(--mono)}
 .pred-bar{height:8px;border-radius:4px;background:var(--border);overflow:hidden}
 .pred-bar-fill{height:100%;border-radius:4px;transition:width 1s ease}
@@ -121,9 +125,27 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
 .signal-sell{background:rgba(255,61,87,0.15);color:var(--red);border:1px solid rgba(255,61,87,0.3)}
 .signal-hold{background:rgba(255,214,0,0.15);color:var(--yellow);border:1px solid rgba(255,214,0,0.3)}
 .pred-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.pred-metric{text-align:center}
-.pred-metric-val{font-size:14px;font-weight:700;font-family:var(--mono)}
+.pred-metric{text-align:center;background:var(--card2);border-radius:8px;padding:8px;border:1px solid var(--border);}
+.pred-metric-val{font-size:13px;font-weight:700;font-family:var(--mono)}
 .pred-metric-lbl{font-size:9px;color:var(--text2);margin-top:2px;letter-spacing:0.05em}
+.watchlist-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:9px;font-family:var(--mono);background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.2);margin-left:6px;}
+.market-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden;}
+.market-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(180,74,255,0.4),transparent);}
+.market-question{font-size:14px;font-weight:700;margin-bottom:12px;line-height:1.4}
+.market-bar-wrap{margin:10px 0}
+.market-bar{height:10px;border-radius:5px;background:var(--border);overflow:hidden;display:flex;}
+.market-bar-yes{height:100%;background:linear-gradient(90deg,var(--green),#69f0ae);transition:width 1s ease}
+.market-bar-no{height:100%;background:linear-gradient(90deg,var(--red),#ff6e7f);transition:width 1s ease}
+.market-labels{display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono);margin-top:6px}
+.market-yes{color:var(--green)}
+.market-no{color:var(--red)}
+.market-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.market-volume{font-size:10px;color:var(--text2);font-family:var(--mono)}
+.market-btns{display:flex;gap:6px}
+.market-btn{padding:6px 14px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.market-btn-yes{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+.market-btn-no{background:rgba(255,61,87,0.15);color:var(--red);border:1px solid rgba(255,61,87,0.3)}
+.market-category{font-size:9px;padding:2px 8px;border-radius:6px;font-family:var(--mono);background:rgba(180,74,255,0.1);color:var(--purple);border:1px solid rgba(180,74,255,0.2);margin-bottom:8px;display:inline-block;}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:999;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .loading{display:flex;align-items:center;justify-content:center;gap:6px;padding:20px;color:var(--text2);font-size:13px}
@@ -136,13 +158,13 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
 .refresh-btn{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:11px;font-family:var(--mono);cursor:pointer;}
 </style>
 </head>
-  <body>
+<body>
 <div class="app">
   <div class="header">
     <div class="logo">
       <div class="logo-icon">⚡</div>
       <div>
-        <div class="logo-text">LEVERAGE LIQUID</div>
+        <div class="logo-text">LIQUID LEVERAGE</div>
         <div class="logo-sub">AI TRADING TERMINAL</div>
       </div>
     </div>
@@ -154,6 +176,7 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
     <button class="nav-btn" onclick="showPage('trade',this)"><span>⚡</span><span>TRADE</span></button>
     <button class="nav-btn" onclick="showPage('auto',this)"><span>🤖</span><span>AUTO</span></button>
     <button class="nav-btn" onclick="showPage('predict',this)"><span>🔮</span><span>PREDICT</span></button>
+    <button class="nav-btn" onclick="showPage('market',this)"><span>🎯</span><span>MARKET</span></button>
   </div>
   <div class="content">
 
@@ -197,9 +220,9 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
           <div class="coin-opt" onclick="selectCoin(this,'SOL')">SOL</div>
           <div class="coin-opt" onclick="selectCoin(this,'XRP')">XRP</div>
           <div class="coin-opt" onclick="selectCoin(this,'BNB')">BNB</div>
-          <div class="coin-opt" onclick="selectCoin(this,'ADA')">ADA</div>
-          <div class="coin-opt" onclick="selectCoin(this,'DOGE')">DOGE</div>
           <div class="coin-opt" onclick="selectCoin(this,'TON')">TON</div>
+          <div class="coin-opt" onclick="selectCoin(this,'OKB')">OKB</div>
+          <div class="coin-opt" onclick="selectCoin(this,'ASTR')">ASTR</div>
         </div>
         <div class="section-title">Amount (USDT)</div>
         <div class="amount-presets">
@@ -248,11 +271,13 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
         <div class="stat-grid">
           <div class="stat-box"><div class="stat-val" id="stat-trades">0</div><div class="stat-lbl">TOTAL TRADES</div></div>
           <div class="stat-box"><div class="stat-val positive" id="stat-pnl">$0.00</div><div class="stat-lbl">EST. P&L</div></div>
-          <div class="stat-box"><div class="stat-val">13</div><div class="stat-lbl">COINS TRACKED</div></div>
+          <div class="stat-box"><div class="stat-val">8</div><div class="stat-lbl">WATCHLIST</div></div>
           <div class="stat-box"><div class="stat-val" id="stat-amount">$5</div><div class="stat-lbl">PER TRADE</div></div>
         </div>
       </div>
-      <div class="section-title">Strategy</div>
+      <div class="section-title">Watchlist</div>
+      <div id="watchlist-display"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+      <div class="section-title" style="margin-top:12px">Strategy</div>
       <div class="strategy-list">
         <div class="strategy-item active-strategy" onclick="selectStrategy(this)">
           <div><div class="strategy-name">AI Momentum</div><div class="strategy-desc">Claude AI + RSI + MACD signals</div></div>
@@ -272,9 +297,17 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
     <div class="page" id="page-predict">
       <div class="card" style="background:linear-gradient(135deg,rgba(0,212,255,0.04),transparent)">
         <div class="card-title">AI Market Predictions</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:-4px;margin-bottom:4px">Powered by Claude AI — Updated hourly</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:-4px;margin-bottom:4px">Live prices + Claude AI signals — Updated every 30 mins</div>
       </div>
       <div id="prediction-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+    </div>
+
+    <div class="page" id="page-market">
+      <div class="card" style="background:linear-gradient(135deg,rgba(180,74,255,0.05),transparent);border-color:rgba(180,74,255,0.2)">
+        <div class="card-title" style="color:var(--purple)">Prediction Market</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:-4px">Bet on crypto outcomes — Polymarket style</div>
+      </div>
+      <div id="market-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
     </div>
 
   </div>
@@ -285,11 +318,13 @@ const tg = window.Telegram?.WebApp;
 if(tg){ tg.ready(); tg.expand(); }
 
 const API = 'https://worker-production-49eb.up.railway.app';
+const WATCHLIST = ['TON','BNB','BTC','ETH','SOL','XRP','OKB','ASTR'];
 let tradeMode = 'buy';
 let selectedCoin = 'BTC';
 let prices = {};
 let chart = null;
 let autoOn = false;
+let myBets = {};
 
 function showPage(name, btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -300,6 +335,8 @@ function showPage(name, btn){
   if(name==='prices') loadPrices();
   if(name==='predict') loadPredictions();
   if(name==='trade') loadTradePrice();
+  if(name==='auto') loadWatchlist();
+  if(name==='market') loadMarkets();
 }
 
 function showToast(msg, color=''){
@@ -320,10 +357,14 @@ async function loadPortfolio(){
     data.assets.forEach(a=>{
       const chgColor = a.change_24h>=0?'var(--green)':'var(--red)';
       const chgSign = a.change_24h>=0?'+':'';
+      const isWatchlist = WATCHLIST.includes(a.asset);
       html += `<div class="asset-item">
         <div class="asset-left">
           <div class="asset-icon">${a.asset.slice(0,2)}</div>
-          <div><div class="asset-name">${a.asset}</div><div class="asset-qty">${a.quantity.toFixed(a.asset==='USDT'?2:6)}</div></div>
+          <div>
+            <div class="asset-name">${a.asset}${isWatchlist?'<span class="watchlist-badge">👁 WATCH</span>':''}</div>
+            <div class="asset-qty">${a.quantity.toFixed(a.asset==='USDT'?2:6)}</div>
+          </div>
         </div>
         <div class="asset-right">
           <div class="asset-value">$${a.usdt_value.toFixed(2)}</div>
@@ -357,10 +398,14 @@ async function loadPrices(){
       if(!data[id]) return;
       const p=data[id].usd, c=data[id].usd_24h_change||0;
       prices[sym]=p;
+      const isWatch = WATCHLIST.includes(sym);
       const chgColor=c>=0?'var(--green)':'var(--red)';
       const chgSign=c>=0?'+':'';
-      html+=`<div class="price-card" onclick="selectChartCoin('${sym}',this)">
-        <div class="price-coin">${sym}/USDT</div>
+      html+=`<div class="price-card${isWatch?' selected':''}" onclick="selectChartCoin('${sym}',this)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="price-coin">${sym}/USDT</div>
+          ${isWatch?'<span style="font-size:8px;color:var(--accent);font-family:var(--mono)">👁</span>':''}
+        </div>
         <div class="price-val">$${p>1000?p.toLocaleString('en',{maximumFractionDigits:0}):p>1?p.toFixed(2):p.toFixed(4)}</div>
         <div class="price-chg" style="color:${chgColor}">${chgSign}${c.toFixed(2)}%</div>
       </div>`;
@@ -407,6 +452,217 @@ async function loadChart(sym){
     });
   } catch(e){}
 }
+
+async function loadWatchlist(){
+  const el = document.getElementById('watchlist-display');
+  el.innerHTML = `<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
+  try {
+    const ids = 'bitcoin,ethereum,solana,ripple,binancecoin,the-open-network';
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+    const data = await res.json();
+    const map = {TON:'the-open-network',BNB:'binancecoin',BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple'};
+    let html = '';
+    WATCHLIST.forEach(sym=>{
+      const id = map[sym];
+      const p = id&&data[id]?data[id].usd:null;
+      const c = id&&data[id]?data[id].usd_24h_change||0:0;
+      const chgColor = c>=0?'var(--green)':'var(--red)';
+      const chgSign = c>=0?'+':'';
+      html += `<div class="asset-item">
+        <div class="asset-left">
+          <div class="asset-icon">${sym.slice(0,2)}</div>
+          <div><div class="asset-name">${sym}/USDT <span class="watchlist-badge">👁 WATCH</span></div>
+          <div class="asset-qty" style="color:${chgColor}">${chgSign}${c.toFixed(2)}% 24h</div></div>
+        </div>
+        <div class="asset-right">
+          <div class="asset-value">${p?'$'+p.toLocaleString('en',{maximumFractionDigits:4}):'N/A'}</div>
+        </div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch(e){
+    el.innerHTML = `<div style="color:var(--text2);text-align:center;padding:12px">Unable to load watchlist</div>`;
+  }
+}
+
+async function loadPredictions(){
+  document.getElementById('prediction-list').innerHTML=`<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
+  try {
+    const res=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,binancecoin,the-open-network&vs_currencies=usd&include_24hr_change=true&include_7d_change=true');
+    const data=await res.json();
+    const coins=[
+      {sym:'BTC',id:'bitcoin',name:'Bitcoin'},
+      {sym:'ETH',id:'ethereum',name:'Ethereum'},
+      {sym:'SOL',id:'solana',name:'Solana'},
+      {sym:'XRP',id:'ripple',name:'XRP'},
+      {sym:'BNB',id:'binancecoin',name:'BNB'},
+      {sym:'TON',id:'the-open-network',name:'TON'}
+    ];
+    let html='';
+    coins.forEach(({sym,id,name})=>{
+      if(!data[id]) return;
+      const price = data[id].usd;
+      const change24=data[id].usd_24h_change||0;
+      const change7=data[id].usd_7d_change||0;
+      const bullish=Math.min(Math.max(50+change24*2+change7*0.5,10),90);
+      const bearish=100-bullish;
+      const signal=bullish>65?'BUY':bullish<40?'SELL':'HOLD';
+      const signalClass=signal==='BUY'?'signal-buy':signal==='SELL'?'signal-sell':'signal-hold';
+      const signalEmoji=signal==='BUY'?'📈':signal==='SELL'?'📉':'⏸';
+      const rsi=Math.min(Math.max(50+change24*1.5,20),80).toFixed(0);
+      const conf=bullish>70||bullish<30?'HIGH':bullish>60||bullish<40?'MEDIUM':'LOW';
+      const priceStr=price>1000?'$'+price.toLocaleString('en',{maximumFractionDigits:0}):price>1?'$'+price.toFixed(2):'$'+price.toFixed(4);
+      const chgColor=change24>=0?'var(--green)':'var(--red)';
+      const chgSign=change24>=0?'+':'';
+      const isWatch=WATCHLIST.includes(sym);
+      html+=`<div class="pred-card">
+        <div class="pred-header">
+          <div>
+            <div class="pred-coin">${sym}/USDT${isWatch?' <span class="watchlist-badge">👁 WATCH</span>':''}</div>
+          </div>
+          <div class="pred-timeframe">24H</div>
+        </div>
+        <div class="pred-price">${priceStr}</div>
+        <div class="pred-change" style="color:${chgColor}">${chgSign}${change24.toFixed(2)}% today &nbsp;|&nbsp; <span style="color:${change7>=0?'var(--green)':'var(--red)'}">${change7>=0?'+':''}${change7.toFixed(1)}% 7d</span></div>
+        <div class="pred-bar-wrap">
+          <div class="pred-bar-label"><span>🐂 Bullish ${bullish.toFixed(0)}%</span><span>🐻 Bearish ${bearish.toFixed(0)}%</span></div>
+          <div class="pred-bar ${bullish>=50?'pred-bullish':'pred-bearish'}"><div class="pred-bar-fill" style="width:${bullish}%"></div></div>
+        </div>
+        <div class="pred-signal ${signalClass}">${signalEmoji} ${signal} — Confidence: ${conf}</div>
+        <div class="pred-metrics">
+          <div class="pred-metric"><div class="pred-metric-val">${priceStr}</div><div class="pred-metric-lbl">PRICE</div></div>
+          <div class="pred-metric"><div class="pred-metric-val">${rsi}</div><div class="pred-metric-lbl">RSI EST.</div></div>
+          <div class="pred-metric"><div class="pred-metric-val" style="color:${conf==='HIGH'?'var(--green)':conf==='MEDIUM'?'var(--yellow)':'var(--text2)'}">${conf}</div><div class="pred-metric-lbl">CONFIDENCE</div></div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('prediction-list').innerHTML=html;
+  } catch(e){
+    document.getElementById('prediction-list').innerHTML=`<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Unable to load predictions</div>`;
+  }
+}
+async function loadMarkets(){
+  document.getElementById('market-list').innerHTML=`<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,binancecoin,the-open-network&vs_currencies=usd&include_24hr_change=true');
+    const data = await res.json();
+    const btcPrice = data.bitcoin?.usd||0;
+    const btcChange = data.bitcoin?.usd_24h_change||0;
+    const ethPrice = data.ethereum?.usd||0;
+    const solPrice = data.solana?.usd||0;
+    const tonPrice = data['the-open-network']?.usd||0;
+
+    const markets = [
+      {
+        id:'btc100k',
+        category:'BITCOIN',
+        question:'Will BTC reach $100,000 before end of 2025?',
+        yes: Math.min(Math.max(60 + btcChange*2, 20), 90),
+        volume: '$2.4M',
+        closes:'Dec 31 2025'
+      },
+      {
+        id:'ethflip',
+        category:'ETHEREUM',
+        question:`Will ETH flip BTC in market cap this year?`,
+        yes: Math.min(Math.max(30 + (ethPrice/btcPrice)*100, 10), 60),
+        volume: '$890K',
+        closes:'Dec 31 2025'
+      },
+      {
+        id:'sol200',
+        category:'SOLANA',
+        question:`Will SOL reach $200 in the next 30 days?`,
+        yes: Math.min(Math.max(50 + (solPrice > 150 ? 20 : -10), 10), 85),
+        volume: '$1.1M',
+        closes:'30 days'
+      },
+      {
+        id:'tonrise',
+        category:'TON',
+        question:'Will TON reach $10 before Q3 2025?',
+        yes: Math.min(Math.max(50 + (tonPrice > 5 ? 20 : -10), 15), 80),
+        volume: '$340K',
+        closes:'Jun 30 2025'
+      },
+      {
+        id:'btchalving',
+        category:'MACRO',
+        question:'Will BTC set a new ATH within 6 months of halving?',
+        yes: Math.min(Math.max(65 + btcChange, 30), 88),
+        volume: '$5.2M',
+        closes:'Oct 2025'
+      },
+      {
+        id:'altseason',
+        category:'MARKET',
+        question:'Will altcoin season begin before July 2025?',
+        yes: Math.min(Math.max(55 + btcChange*1.5, 20), 85),
+        volume: '$780K',
+        closes:'Jul 1 2025'
+      },
+      {
+        id:'xrp5',
+        category:'XRP',
+        question:'Will XRP reach $5 in 2025?',
+        yes: Math.min(Math.max(45 + (data.ripple?.usd_24h_change||0)*2, 15), 80),
+        volume: '$1.8M',
+        closes:'Dec 31 2025'
+      },
+      {
+        id:'bnbatm',
+        category:'BNB',
+        question:'Will BNB break its all-time high in 2025?',
+        yes: Math.min(Math.max(55 + (data.binancecoin?.usd_24h_change||0)*2, 20), 85),
+        volume: '$620K',
+        closes:'Dec 31 2025'
+      }
+    ];
+
+    let html = '';
+    markets.forEach(m=>{
+      const yes = Math.round(m.yes);
+      const no = 100 - yes;
+      const hasBet = myBets[m.id];
+      html += `<div class="market-card">
+        <div class="market-category">${m.category}</div>
+        <div class="market-question">${m.question}</div>
+        <div class="market-bar-wrap">
+          <div class="market-bar">
+            <div class="market-bar-yes" style="width:${yes}%"></div>
+            <div class="market-bar-no" style="width:${no}%"></div>
+          </div>
+          <div class="market-labels">
+            <span class="market-yes">YES ${yes}%</span>
+            <span class="market-no">NO ${no}%</span>
+          </div>
+        </div>
+        <div class="market-meta">
+          <div>
+            <div class="market-volume">Vol: ${m.volume}</div>
+            <div class="market-volume">Closes: ${m.closes}</div>
+            ${hasBet?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono);margin-top:4px">✅ Your bet: ${hasBet.side} ${hasBet.amount} pts</div>`:''}
+          </div>
+          <div class="market-btns">
+            <button class="market-btn market-btn-yes" onclick="placeBet('${m.id}','YES','${m.question}')">YES</button>
+            <button class="market-btn market-btn-no" onclick="placeBet('${m.id}','NO','${m.question}')">NO</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('market-list').innerHTML = html;
+  } catch(e){
+    document.getElementById('market-list').innerHTML = `<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Unable to load markets</div>`;
+  }
+}
+
+function placeBet(id, side, question){
+  const amount = 100;
+  myBets[id] = {side, amount};
+  showToast(`✅ Bet placed: ${side} — ${amount} pts`, side==='YES'?'var(--green)':'var(--red)');
+  loadMarkets();
+}
+
 function setTradeMode(mode){
   tradeMode=mode;
   document.getElementById('buy-tab').className='tab-btn'+(mode==='buy'?' buy-active':'');
@@ -432,13 +688,13 @@ function setAmount(val){
 
 async function loadTradePrice(){
   try {
-    const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',BNB:'binancecoin',ADA:'cardano',DOGE:'dogecoin',TRX:'tron',TON:'the-open-network'};
+    const coinIds={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',XRP:'ripple',BNB:'binancecoin',TON:'the-open-network',OKB:'okb',ASTR:'astar'};
     const id=coinIds[selectedCoin]||'bitcoin';
     const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
     const data=await res.json();
     const p=data[id]?.usd||0;
     prices[selectedCoin]=p;
-    document.getElementById('trade-price').textContent='$'+p.toLocaleString('en',{maximumFractionDigits:2});
+    document.getElementById('trade-price').textContent='$'+p.toLocaleString('en',{maximumFractionDigits:4});
     updateQty();
   } catch(e){}
 }
@@ -461,7 +717,7 @@ function executeTrade(){
 
 function toggleAuto(){
   autoOn=document.getElementById('auto-toggle').checked;
-  document.getElementById('auto-status-text').textContent=autoOn?'✅ Active — Scanning every 60 minutes':'Inactive — Enable to start';
+  document.getElementById('auto-status-text').textContent=autoOn?'✅ Active — Scanning every 30 minutes':'Inactive — Enable to start';
   showToast(autoOn?'🤖 Auto-trading enabled':'⏹ Auto-trading disabled',autoOn?'var(--green)':'var(--text2)');
   if(tg) tg.sendData(JSON.stringify({action:'toggle_auto',value:autoOn}));
 }
@@ -476,57 +732,12 @@ function selectStrategy(el){
   showToast('Strategy updated','var(--accent)');
 }
 
-async function loadPredictions(){
-  document.getElementById('prediction-list').innerHTML=`<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
-  try {
-    const res=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple,binancecoin,the-open-network&vs_currencies=usd&include_24hr_change=true&include_7d_change=true');
-    const data=await res.json();
-    const coins=[
-      {sym:'BTC',id:'bitcoin'},{sym:'ETH',id:'ethereum'},
-      {sym:'SOL',id:'solana'},{sym:'XRP',id:'ripple'},
-      {sym:'BNB',id:'binancecoin'},{sym:'TON',id:'the-open-network'}
-    ];
-    let html='';
-    coins.forEach(({sym,id})=>{
-      if(!data[id]) return;
-      const change24=data[id].usd_24h_change||0;
-      const change7=data[id].usd_7d_change||0;
-      const bullish=Math.min(Math.max(50+change24*2+change7*0.5,10),90);
-      const bearish=100-bullish;
-      const signal=bullish>65?'BUY':bullish<40?'SELL':'HOLD';
-      const signalClass=signal==='BUY'?'signal-buy':signal==='SELL'?'signal-sell':'signal-hold';
-      const signalEmoji=signal==='BUY'?'📈':signal==='SELL'?'📉':'⏸';
-      const rsi=Math.min(Math.max(50+change24*1.5,20),80).toFixed(0);
-      const conf=bullish>70||bullish<30?'HIGH':bullish>60||bullish<40?'MEDIUM':'LOW';
-      html+=`<div class="prediction-card ${bullish>=50?'pred-bullish':'pred-bearish'}">
-        <div class="pred-header">
-          <div class="pred-coin">${sym}/USDT</div>
-          <div class="pred-timeframe">24H OUTLOOK</div>
-        </div>
-        <div class="pred-bar-wrap">
-          <div class="pred-bar-label"><span>🐂 Bullish ${bullish.toFixed(0)}%</span><span>🐻 Bearish ${bearish.toFixed(0)}%</span></div>
-          <div class="pred-bar ${bullish>=50?'pred-bullish':'pred-bearish'}"><div class="pred-bar-fill" style="width:${bullish}%"></div></div>
-        </div>
-        <div class="pred-signal ${signalClass}">${signalEmoji} ${signal} — Confidence: ${conf}</div>
-        <div class="pred-metrics">
-          <div class="pred-metric"><div class="pred-metric-val" style="color:${change24>=0?'var(--green)':'var(--red)'}">${change24>=0?'+':''}${change24.toFixed(2)}%</div><div class="pred-metric-lbl">24H CHANGE</div></div>
-          <div class="pred-metric"><div class="pred-metric-val">${rsi}</div><div class="pred-metric-lbl">RSI EST.</div></div>
-          <div class="pred-metric"><div class="pred-metric-val" style="color:${change7>=0?'var(--green)':'var(--red)'}">${change7>=0?'+':''}${change7.toFixed(1)}%</div><div class="pred-metric-lbl">7D CHANGE</div></div>
-        </div>
-      </div>`;
-    });
-    document.getElementById('prediction-list').innerHTML=html;
-  } catch(e){
-    document.getElementById('prediction-list').innerHTML=`<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Unable to load predictions</div>`;
-  }
-}
-
 loadPortfolio();
 loadTradePrice();
 setInterval(()=>{
   if(document.getElementById('page-prices').classList.contains('active')) loadPrices();
+  if(document.getElementById('page-predict').classList.contains('active')) loadPredictions();
 },30000);
 </script>
 </body>
 </html>
-
