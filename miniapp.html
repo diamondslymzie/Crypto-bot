@@ -382,3 +382,534 @@ input:checked+.toggle-slider:before{transform:translateX(24px);background:#000}
 </div>
 
 <div class="toast" id="toast"></div>
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.ready(); tg.expand(); }
+
+const API = 'https://worker-production-49eb.up.railway.app';
+const WATCHLIST = [
+  {sym:'TON',name:'Toncoin',id:'the-open-network'},
+  {sym:'BNB',name:'BNB',id:'binancecoin'},
+  {sym:'BTC',name:'Bitcoin',id:'bitcoin'},
+  {sym:'ETH',name:'Ethereum',id:'ethereum'},
+  {sym:'SOL',name:'Solana',id:'solana'},
+  {sym:'XRP',name:'XRP',id:'ripple'},
+  {sym:'OKB',name:'OKB',id:'okb'},
+  {sym:'ASTR',name:'Astar',id:'astar'}
+];
+
+const COIN_NAMES = {
+  BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',XRP:'XRP',BNB:'BNB',
+  TON:'Toncoin',OKB:'OKB',ASTR:'Astar',ADA:'Cardano',DOGE:'Dogecoin',
+  AVAX:'Avalanche',DOT:'Polkadot',MATIC:'Polygon',LTC:'Litecoin',
+  LINK:'Chainlink',UNI:'Uniswap',ATOM:'Cosmos',TRX:'TRON',
+  NEAR:'NEAR Protocol',FIL:'Filecoin'
+};
+
+let tradeMode='buy', selectedCoin='BTC', prices={}, chart=null;
+let autoOn=false, myBets={}, currentMarketFilter='all';
+let userProfile = JSON.parse(localStorage.getItem('ll_profile')||'{}');
+let allMarkets = [];
+
+// ── INIT ──────────────────────────────────────────────────────────────
+function init(){
+  loadProfile();
+  loadPortfolio();
+  loadTradePrice();
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='portfolio') loadPortfolio();
+  if(name==='prices') loadPrices();
+  if(name==='trade') loadTradePrice();
+  if(name==='auto') loadWatchlistCoins();
+  if(name==='signal') loadSignals();
+  if(name==='market') loadMarkets();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg,color=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.color=color||'var(--text)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── PROFILE / SETTINGS ────────────────────────────────────────────────
+function loadProfile(){
+  const p = userProfile;
+  if(p.name){ document.getElementById('profile-name-display').textContent=p.name; }
+  if(p.memberSince){ document.getElementById('member-since').textContent=p.memberSince; }
+  else {
+    const today = new Date().toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'});
+    document.getElementById('member-since').textContent=today;
+  }
+  if(p.name) document.getElementById('setting-name').value=p.name;
+  if(p.amount) document.getElementById('setting-amount').value=p.amount;
+  if(p.risk) document.getElementById('setting-risk').value=p.risk;
+  const avatarEmojis=['👤','🦁','🐺','🦊','🐉','⚡','🔥','💎'];
+  document.getElementById('profile-avatar').textContent=p.avatar||'👤';
+  document.getElementById('profile-sub-display').textContent=p.risk?`Risk: ${p.risk.toUpperCase()} | Bitget Connected`:'Liquid Leverage Member';
+}
+
+function saveSettings(){
+  const name=document.getElementById('setting-name').value||'Trader';
+  const amount=document.getElementById('setting-amount').value||'5';
+  const risk=document.getElementById('setting-risk').value;
+  const today=new Date().toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'});
+  userProfile={
+    name,amount,risk,
+    memberSince:userProfile.memberSince||today,
+    avatar:userProfile.avatar||'👤',
+    notif:document.getElementById('setting-notif').checked
+  };
+  localStorage.setItem('ll_profile',JSON.stringify(userProfile));
+  document.getElementById('profile-name-display').textContent=name;
+  document.getElementById('profile-sub-display').textContent=`Risk: ${risk.toUpperCase()} | Bitget Connected`;
+  closeSettings();
+  showToast('✅ Profile saved!','var(--green)');
+}
+
+function openSettings(){ document.getElementById('settings-overlay').classList.add('open'); loadProfile(); }
+function closeSettings(){ document.getElementById('settings-overlay').classList.remove('open'); }
+function closeSettingsOutside(e){ if(e.target===document.getElementById('settings-overlay')) closeSettings(); }
+
+// ── PORTFOLIO ─────────────────────────────────────────────────────────
+async function loadPortfolio(){
+  document.getElementById('asset-list').innerHTML=loading();
+  try{
+    const res=await fetch(API+'/portfolio');
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error);
+    let html='';
+    data.assets.forEach(a=>{
+      const cc=a.change_24h>=0?'var(--green)':'var(--red)';
+      const cs=a.change_24h>=0?'+':'';
+      html+=`<div class="asset-item">
+        <div class="asset-left">
+          <div class="asset-icon">${a.asset.slice(0,2)}</div>
+          <div><div class="asset-name">${COIN_NAMES[a.asset]||a.asset} <span style="color:var(--text2);font-size:10px;font-family:var(--mono)">${a.asset}</span></div>
+          <div class="asset-sub">${a.quantity.toFixed(a.asset==='USDT'?2:6)} ${a.asset}</div></div>
+        </div>
+        <div class="asset-right">
+          <div class="asset-value">$${a.usdt_value.toFixed(2)}</div>
+          <div class="asset-chg" style="color:${cc}">${cs}${a.change_24h.toFixed(2)}%</div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('total-val').textContent='$'+data.total_usdt.toFixed(2);
+    document.getElementById('total-change').textContent='↑ Live Bitget balance';
+    document.getElementById('asset-list').innerHTML=html||'<div style="color:var(--text2);text-align:center;padding:16px">No assets found</div>';
+  }catch(e){
+    document.getElementById('asset-list').innerHTML=`<div style="color:var(--text2);text-align:center;padding:16px">❌ ${e.message}</div>`;
+    document.getElementById('total-val').textContent='$—';
+    document.getElementById('total-change').textContent='Connect Bitget API';
+  }
+}
+
+// ── PRICES ────────────────────────────────────────────────────────────
+async function loadPrices(){
+  document.getElementById('price-list').innerHTML=loading();
+  document.getElementById('memecoin-list').innerHTML=loading();
+  try{
+    const res=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h');
+    const coins=await res.json();
+    prices={};
+    let html='';
+    coins.forEach((c,i)=>{
+      prices[c.symbol.toUpperCase()]=c.current_price;
+      const chg=c.price_change_percentage_24h||0;
+      const cc=chg>=0?'var(--green)':'var(--red)';
+      const cs=chg>=0?'+':'';
+      const pStr=c.current_price>1000?'$'+c.current_price.toLocaleString('en',{maximumFractionDigits:0}):c.current_price>1?'$'+c.current_price.toFixed(2):'$'+c.current_price.toFixed(4);
+      html+=`<div class="price-item" onclick="selectPriceChart('${c.id}','${c.symbol.toUpperCase()}','${c.name}',${c.current_price},this)">
+        <div class="price-rank">#${i+1}</div>
+        <div class="price-left">
+          <div class="price-icon">${c.symbol.toUpperCase().slice(0,3)}</div>
+          <div><div class="price-name">${c.name}</div><div class="price-sym">${c.symbol.toUpperCase()}</div></div>
+        </div>
+        <div class="price-right">
+          <div class="price-val">${pStr}</div>
+          <div class="price-chg" style="color:${cc}">${cs}${chg.toFixed(2)}%</div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('price-list').innerHTML=html;
+  }catch(e){
+    document.getElementById('price-list').innerHTML=`<div style="color:var(--text2);text-align:center;padding:16px">Unable to load prices</div>`;
+  }
+  loadMemecoins();
+}
+
+async function loadMemecoins(){
+  try{
+    const memeIds='dogecoin,shiba-inu,pepe,floki,bonk,dogwifcoin,book-of-meme,popcat,brett-based,mog-coin';
+    const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${memeIds}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`);
+    const data=await res.json();
+    const memes=[
+      {id:'dogecoin',sym:'DOGE',name:'Dogecoin'},
+      {id:'shiba-inu',sym:'SHIB',name:'Shiba Inu'},
+      {id:'pepe',sym:'PEPE',name:'Pepe'},
+      {id:'floki',sym:'FLOKI',name:'Floki'},
+      {id:'bonk',sym:'BONK',name:'Bonk'},
+      {id:'dogwifcoin',sym:'WIF',name:'dogwifhat'},
+      {id:'book-of-meme',sym:'BOME',name:'Book of Meme'},
+      {id:'popcat',sym:'POPCAT',name:'Popcat'},
+      {id:'brett-based',sym:'BRETT',name:'Brett'},
+      {id:'mog-coin',sym:'MOG',name:'Mog Coin'}
+    ];
+    let html='';
+    memes.forEach(m=>{
+      if(!data[m.id]) return;
+      const p=data[m.id].usd;
+      const c=data[m.id].usd_24h_change||0;
+      const cc=c>=0?'var(--green)':'var(--red)';
+      const cs=c>=0?'+':'';
+      const pStr=p>0.01?'$'+p.toFixed(4):'$'+p.toFixed(8);
+      html+=`<div class="memecoin-item">
+        <div class="asset-left">
+          <div class="asset-icon" style="color:var(--orange)">${m.sym.slice(0,3)}</div>
+          <div><div class="asset-name">${m.name} <span class="meme-badge">MEME</span></div>
+          <div class="asset-sub">${m.sym}</div></div>
+        </div>
+        <div class="asset-right">
+          <div class="asset-value">${pStr}</div>
+          <div class="asset-chg" style="color:${cc}">${cs}${c.toFixed(2)}%</div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('memecoin-list').innerHTML=html||'<div style="color:var(--text2);text-align:center;padding:12px">No memecoin data</div>';
+  }catch(e){
+    document.getElementById('memecoin-list').innerHTML=`<div style="color:var(--text2);text-align:center;padding:12px">Unable to load memecoins</div>`;
+  }
+}
+
+async function selectPriceChart(id,sym,name,price,el){
+  document.querySelectorAll('.price-item').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+  const card=document.getElementById('chart-card');
+  card.style.display='block';
+  document.getElementById('chart-title').textContent=`${name} (${sym}) — 7D`;
+  document.getElementById('chart-price').textContent='$'+price.toLocaleString('en',{maximumFractionDigits:price>1?2:6});
+  card.scrollIntoView({behavior:'smooth',block:'nearest'});
+  try{
+    const res=await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`);
+    const data=await res.json();
+    const labels=data.prices.filter((_,i)=>i%12===0).map(p=>new Date(p[0]).toLocaleDateString('en',{month:'short',day:'numeric'}));
+    const vals=data.prices.filter((_,i)=>i%12===0).map(p=>p[1]);
+    const isUp=vals[vals.length-1]>=vals[0];
+    const color=isUp?'#00e676':'#ff3d57';
+    if(chart) chart.destroy();
+    const ctx=document.getElementById('priceChart').getContext('2d');
+    const gradient=ctx.createLinearGradient(0,0,0,170);
+    gradient.addColorStop(0,isUp?'rgba(0,230,118,0.2)':'rgba(255,61,87,0.2)');
+    gradient.addColorStop(1,'rgba(0,0,0,0)');
+    chart=new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets:[{data:vals,borderColor:color,backgroundColor:gradient,borderWidth:2,pointRadius:0,fill:true,tension:0.4}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(13,16,23,0.95)',borderColor:'rgba(0,212,255,0.2)',borderWidth:1,titleColor:'#8892a4',bodyColor:'#e8eaf0',callbacks:{label:c=>'$'+c.raw.toLocaleString('en',{maximumFractionDigits:4})}}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#4a5568',font:{size:8},maxTicksLimit:5}},
+          y:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#4a5568',font:{size:8,family:'DM Mono'},callback:v=>'$'+v.toLocaleString('en',{maximumFractionDigits:0})}}
+        }
+      }
+    });
+  }catch(e){}
+}
+
+// ── TRADE ─────────────────────────────────────────────────────────────
+function setTradeMode(mode){
+  tradeMode=mode;
+  document.getElementById('buy-tab').className='tab-btn'+(mode==='buy'?' buy-active':'');
+  document.getElementById('sell-tab').className='tab-btn'+(mode==='sell'?' sell-active':'');
+  const btn=document.getElementById('trade-btn');
+  btn.className='action-btn '+(mode==='buy'?'buy':'sell');
+  const cname=COIN_NAMES[selectedCoin]||selectedCoin;
+  btn.textContent=(mode==='buy'?'📈 BUY ':'📉 SELL ')+cname+' ('+selectedCoin+')';
+}
+
+function selectCoin(el,coin){
+  document.querySelectorAll('.coin-opt').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCoin=coin;
+  const cname=COIN_NAMES[coin]||coin;
+  document.getElementById('trade-coin-display').textContent=cname+' ('+coin+'/USDT)';
+  document.getElementById('trade-btn').textContent=(tradeMode==='buy'?'📈 BUY ':'📉 SELL ')+cname+' ('+coin+')';
+  loadTradePrice();
+}
+
+function setAmount(val){ document.getElementById('trade-amount').value=val; updateQty(); }
+
+async function loadTradePrice(){
+  try{
+    const wl=WATCHLIST.find(w=>w.sym===selectedCoin);
+    const id=wl?wl.id:selectedCoin.toLowerCase();
+    const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
+    const data=await res.json();
+    const p=data[id]?.usd||0;
+    prices[selectedCoin]=p;
+    document.getElementById('trade-price').textContent='$'+p.toLocaleString('en',{maximumFractionDigits:4});
+    updateQty();
+  }catch(e){}
+}
+
+function updateQty(){
+  const amt=parseFloat(document.getElementById('trade-amount').value)||0;
+  const p=prices[selectedCoin]||0;
+  if(p>0) document.getElementById('trade-qty').textContent=(amt/p).toFixed(6)+' '+selectedCoin;
+}
+
+document.getElementById('trade-amount').addEventListener('input',updateQty);
+
+function executeTrade(){
+  const amt=parseFloat(document.getElementById('trade-amount').value)||0;
+  if(amt<1){showToast('⚠️ Minimum $1 USDT','var(--yellow)');return;}
+  const cname=COIN_NAMES[selectedCoin]||selectedCoin;
+  showToast(tradeMode==='buy'?`📈 Buy: $${amt} of ${cname}`:`📉 Sell: ${cname}`,tradeMode==='buy'?'var(--green)':'var(--red)');
+  if(tg) tg.sendData(JSON.stringify({action:tradeMode,coin:selectedCoin,amount:amt}));
+}
+
+// ── AUTO / WATCHLIST ──────────────────────────────────────────────────
+async function loadWatchlistCoins(){
+  document.getElementById('watchlist-coins').innerHTML=loading();
+  try{
+    const ids=WATCHLIST.map(w=>w.id).join(',');
+    const res=await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false&price_change_percentage=24h`);
+    const coins=await res.json();
+    let momentumCount=0;
+    let html='';
+    coins.forEach(c=>{
+      const chg=c.price_change_percentage_24h||0;
+      const sym=c.symbol.toUpperCase();
+      const momentum=Math.abs(chg)>3?chg>0?'UP':'DOWN':'NEUTRAL';
+      if(momentum!=='NEUTRAL') momentumCount++;
+      const mc=c.market_cap?'$'+abbreviate(c.market_cap):'N/A';
+      const ath=c.ath?'$'+c.ath.toLocaleString('en',{maximumFractionDigits:2}):'N/A';
+      const genesis=c.genesis_date||'N/A';
+      const vol='$'+abbreviate(c.total_volume||0);
+      const pStr=c.current_price>1000?'$'+c.current_price.toLocaleString('en',{maximumFractionDigits:0}):c.current_price>1?'$'+c.current_price.toFixed(2):'$'+c.current_price.toFixed(4);
+      const cc=chg>=0?'var(--green)':'var(--red)';
+      const cs=chg>=0?'+':'';
+      const mbClass=momentum==='UP'?'momentum-up':momentum==='DOWN'?'momentum-down':'momentum-neutral';
+      const mbEmoji=momentum==='UP'?'🚀':momentum==='DOWN'?'📉':'➡️';
+      html+=`<div class="watchlist-coin" id="wc-${sym}" onclick="toggleCoinDetail('${sym}')">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="asset-left">
+            <div class="asset-icon">${sym.slice(0,3)}</div>
+            <div>
+              <div class="asset-name">${c.name} <span style="color:var(--text2);font-size:10px;font-family:var(--mono)">${sym}</span></div>
+              <div class="asset-sub" style="color:${cc}">${cs}${chg.toFixed(2)}% &nbsp; ${pStr}</div>
+            </div>
+          </div>
+          <span class="momentum-badge ${mbClass}">${mbEmoji} ${momentum}</span>
+        </div>
+        <div class="coin-detail-grid" id="cd-${sym}" style="display:none">
+          <div class="coin-detail-box"><div class="coin-detail-val">${mc}</div><div class="coin-detail-lbl">MARKET CAP</div></div>
+          <div class="coin-detail-box"><div class="coin-detail-val">${vol}</div><div class="coin-detail-lbl">24H VOLUME</div></div>
+          <div class="coin-detail-box"><div class="coin-detail-val">${ath}</div><div class="coin-detail-lbl">ALL TIME HIGH</div></div>
+          <div class="coin-detail-box"><div class="coin-detail-val">${genesis}</div><div class="coin-detail-lbl">GENESIS DATE</div></div>
+          <div class="coin-detail-box" style="grid-column:span 2"><div class="coin-detail-val">#${c.market_cap_rank||'N/A'}</div><div class="coin-detail-lbl">CMC RANK</div></div>
+        </div>
+        <button class="auto-trade-btn" onclick="autoTradeThis(event,'${sym}','${c.name}')">⚡ Auto-Trade ${c.name} (${sym})</button>
+      </div>`;
+    });
+    document.getElementById('watchlist-coins').innerHTML=html;
+    document.getElementById('momentum-count').textContent=momentumCount;
+  }catch(e){
+    document.getElementById('watchlist-coins').innerHTML=`<div style="color:var(--text2);text-align:center;padding:16px">Unable to load watchlist</div>`;
+  }
+}
+
+function toggleCoinDetail(sym){
+  const el=document.getElementById('cd-'+sym);
+  const card=document.getElementById('wc-'+sym);
+  if(el.style.display==='none'){
+    el.style.display='grid';
+    card.classList.add('expanded');
+  } else {
+    el.style.display='none';
+    card.classList.remove('expanded');
+  }
+}
+
+function autoTradeThis(e,sym,name){
+  e.stopPropagation();
+  showToast(`🤖 Auto-trading ${name} (${sym})`, 'var(--accent)');
+  if(tg) tg.sendData(JSON.stringify({action:'auto_trade_coin',coin:sym+'/USDT'}));
+}
+
+function toggleAuto(){
+  autoOn=document.getElementById('auto-toggle').checked;
+  document.getElementById('auto-status-text').textContent=autoOn?'✅ Active — Scanning every 30 minutes':'Inactive — Enable to start';
+  showToast(autoOn?'🤖 Auto-trading enabled':'⏹ Disabled',autoOn?'var(--green)':'var(--text2)');
+  if(tg) tg.sendData(JSON.stringify({action:'toggle_auto',value:autoOn}));
+}
+
+// ── SIGNALS ───────────────────────────────────────────────────────────
+async function loadSignals(){
+  document.getElementById('signal-list').innerHTML=loading();
+  try{
+    const res=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d');
+    const coins=await res.json();
+    const momentum=coins.filter(c=>Math.abs(c.price_change_percentage_24h||0)>4).sort((a,b)=>Math.abs(b.price_change_percentage_24h)-Math.abs(a.price_change_percentage_24h)).slice(0,12);
+    let html='';
+    momentum.forEach(c=>{
+      const sym=c.symbol.toUpperCase();
+      const chg24=c.price_change_percentage_24h||0;
+      const chg7=c.price_change_percentage_7d_in_currency||0;
+      const bullish=Math.min(Math.max(50+chg24*2+chg7*0.5,10),92);
+      const signal=bullish>65?'BUY':bullish<38?'SELL':'HOLD';
+      const sClass=signal==='BUY'?'sig-buy':signal==='SELL'?'sig-sell':'sig-hold';
+      const sEmoji=signal==='BUY'?'📈':signal==='SELL'?'📉':'⏸';
+      const rsi=Math.min(Math.max(50+chg24*1.5,15),85).toFixed(0);
+      const conf=bullish>72||bullish<28?'HIGH':bullish>60||bullish<40?'MED':'LOW';
+      const cc=chg24>=0?'var(--green)':'var(--red)';
+      const cs=chg24>=0?'+':'';
+      const pStr=c.current_price>1000?'$'+c.current_price.toLocaleString('en',{maximumFractionDigits:0}):c.current_price>1?'$'+c.current_price.toFixed(2):'$'+c.current_price.toFixed(5);
+      html+=`<div class="signal-card">
+        <div class="signal-header">
+          <div class="signal-coin">${c.name} <span style="color:var(--text2);font-size:11px;font-family:var(--mono)">${sym}</span></div>
+          <span class="signal-badge ${sClass}">${sEmoji} ${signal}</span>
+        </div>
+        <div class="signal-price">${pStr}</div>
+        <div class="signal-change" style="color:${cc}">${cs}${chg24.toFixed(2)}% today &nbsp;|&nbsp; <span style="color:${chg7>=0?'var(--green)':'var(--red)'}">${chg7>=0?'+':''}${chg7.toFixed(1)}% 7d</span></div>
+        <div class="signal-bar-wrap">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text2);margin-bottom:5px;font-family:var(--mono)"><span>🐂 ${bullish.toFixed(0)}%</span><span>🐻 ${(100-bullish).toFixed(0)}%</span></div>
+          <div class="signal-bar ${bullish>=50?'signal-bullish':'signal-bearish'}"><div class="signal-bar-fill" style="width:${bullish}%"></div></div>
+        </div>
+        <div class="signal-metrics">
+          <div class="sig-metric"><div class="sig-metric-val">${pStr}</div><div class="sig-metric-lbl">PRICE</div></div>
+          <div class="sig-metric"><div class="sig-metric-val">${rsi}</div><div class="sig-metric-lbl">RSI</div></div>
+          <div class="sig-metric"><div class="sig-metric-val" style="color:${conf==='HIGH'?'var(--green)':conf==='MED'?'var(--yellow)':'var(--text2)'}">${conf}</div><div class="sig-metric-lbl">CONF</div></div>
+          <div class="sig-metric"><div class="sig-metric-val" style="color:${cc}">${cs}${chg24.toFixed(1)}%</div><div class="sig-metric-lbl">24H</div></div>
+        </div>
+      </div>`;
+    });
+    document.getElementById('signal-list').innerHTML=html||'<div style="color:var(--text2);text-align:center;padding:16px">No strong momentum coins right now</div>';
+  }catch(e){
+    document.getElementById('signal-list').innerHTML=`<div style="color:var(--text2);text-align:center;padding:16px">Unable to load signals</div>`;
+  }
+}
+
+// ── MARKETS ───────────────────────────────────────────────────────────
+async function loadMarkets(){
+  document.getElementById('market-list').innerHTML=loading();
+  try{
+    const res=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple&vs_currencies=usd&include_24hr_change=true');
+    const data=await res.json();
+    const btcChg=data.bitcoin?.usd_24h_change||0;
+    const btcP=data.bitcoin?.usd||0;
+    const ethP=data.ethereum?.usd||0;
+    const solP=data.solana?.usd||0;
+
+    allMarkets=[
+      // CRYPTO
+      {id:'btc100k',cat:'crypto',emoji:'₿',question:'Will Bitcoin reach $100,000 before end of 2025?',yes:Math.min(Math.max(62+btcChg*2,20),90),volume:'$4.2M',closes:'Dec 31 2025',liquidity:'High'},
+      {id:'ethflip',cat:'crypto',emoji:'Ξ',question:'Will Ethereum flip Bitcoin in market cap in 2025?',yes:Math.min(Math.max(22+(ethP/btcP)*80,8),55),volume:'$1.1M',closes:'Dec 31 2025',liquidity:'Medium'},
+      {id:'sol200',cat:'crypto',emoji:'◎',question:'Will Solana reach $300 in 2025?',yes:Math.min(Math.max(48+(solP>150?18:-8),12),84),volume:'$890K',closes:'Dec 31 2025',liquidity:'Medium'},
+      {id:'altszn',cat:'crypto',emoji:'🌊',question:'Will altcoin season begin before July 2025?',yes:Math.min(Math.max(58+btcChg*1.2,20),82),volume:'$2.1M',closes:'Jul 1 2025',liquidity:'High'},
+      {id:'btcatm',cat:'crypto',emoji:'🏔',question:'Will BTC set a new all-time high in Q1 2025?',yes:Math.min(Math.max(55+btcChg*3,15),88),volume:'$5.8M',closes:'Mar 31 2025',liquidity:'Very High'},
+      // POLITICS
+      {id:'us26',cat:'politics',emoji:'🇺🇸',question:'Will the Republican party win the 2026 US midterm elections?',yes:52,volume:'$3.4M',closes:'Nov 3 2026',liquidity:'High'},
+      {id:'trump2',cat:'politics',emoji:'🏛',question:'Will Trump sign a crypto regulation bill in 2025?',yes:67,volume:'$1.8M',closes:'Dec 31 2025',liquidity:'Medium'},
+      {id:'euelec',cat:'politics',emoji:'🇪🇺',question:'Will a pro-crypto candidate win the next major EU election?',yes:44,volume:'$780K',closes:'Dec 31 2025',liquidity:'Low'},
+      {id:'saelec',cat:'politics',emoji:'🇿🇦',question:'Will South Africa hold early general elections before 2026?',yes:28,volume:'$120K',closes:'Dec 31 2025',liquidity:'Low'},
+      {id:'ungov',cat:'politics',emoji:'🌍',question:'Will a G7 country officially adopt Bitcoin as legal tender by 2026?',yes:18,volume:'$2.2M',closes:'Dec 31 2026',liquidity:'Medium'},
+      // SPORTS
+      {id:'ucl25',cat:'sports',emoji:'⚽',question:'Will Manchester City win the 2024/25 UEFA Champions League?',yes:22,volume:'$1.5M',closes:'Jun 1 2025',liquidity:'High'},
+      {id:'nba25',cat:'sports',emoji:'🏀',question:'Will the Boston Celtics win the 2025 NBA Championship?',yes:31,volume:'$980K',closes:'Jun 30 2025',liquidity:'Medium'},
+      {id:'wc26',cat:'sports',emoji:'🏆',question:'Will Brazil win the 2026 FIFA World Cup?',yes:19,volume:'$3.1M',closes:'Jul 2026',liquidity:'High'},
+      {id:'nfl25',cat:'sports',emoji:'🏈',question:'Will the Kansas City Chiefs win Super Bowl LIX?',yes:28,volume:'$2.4M',closes:'Feb 2026',liquidity:'High'},
+      {id:'f125',cat:'sports',emoji:'🏎',question:'Will Max Verstappen win the 2025 F1 World Championship?',yes:58,volume:'$1.1M',closes:'Nov 2025',liquidity:'Medium'},
+    ];
+    renderMarkets();
+  }catch(e){
+    document.getElementById('market-list').innerHTML=`<div style="color:var(--text2);text-align:center;padding:16px">Unable to load markets</div>`;
+  }
+}
+
+function renderMarkets(){
+  const filtered=currentMarketFilter==='all'?allMarkets:allMarkets.filter(m=>m.cat===currentMarketFilter);
+  let html='';
+  filtered.forEach(m=>{
+    const yes=Math.round(m.yes);
+    const no=100-yes;
+    const yOdds=(100/yes).toFixed(2);
+    const nOdds=(100/no).toFixed(2);
+    const hasBet=myBets[m.id];
+    const catClass=m.cat==='crypto'?'cat-crypto':m.cat==='politics'?'cat-politics':'cat-sports';
+    html+=`<div class="market-card">
+      <span class="market-cat ${catClass}">${m.emoji} ${m.cat.toUpperCase()}</span>
+      <div class="market-question">${m.question}</div>
+      <div class="odds-display">
+        <div class="odds-box odds-yes"><div class="odds-val" style="color:var(--green)">${yOdds}x</div><div class="odds-lbl">YES ODDS</div></div>
+        <div class="odds-box odds-no"><div class="odds-val" style="color:var(--red)">${nOdds}x</div><div class="odds-lbl">NO ODDS</div></div>
+      </div>
+      <div class="market-bar">
+        <div class="market-bar-yes" style="width:${yes}%"></div>
+        <div class="market-bar-no" style="width:${no}%"></div>
+      </div>
+      <div class="market-labels"><span class="market-yes">YES ${yes}%</span><span class="market-no">NO ${no}%</span></div>
+      ${hasBet?`<div class="bet-placed">✅ Your bet: ${hasBet.side} — ${hasBet.amount} pts @ ${hasBet.odds}x</div>`:''}
+      <div class="market-meta">
+        <div>
+          <div class="market-info"><span class="live-dot"></span>Vol: ${m.volume} | ${m.liquidity} liquidity</div>
+          <div class="market-info">Closes: ${m.closes}</div>
+        </div>
+        <div class="market-btns">
+          <button class="market-btn market-btn-yes" onclick="placeBet('${m.id}','YES',${yOdds})">YES ${yOdds}x</button>
+          <button class="market-btn market-btn-no" onclick="placeBet('${m.id}','NO',${nOdds})">NO ${nOdds}x</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('market-list').innerHTML=html||'<div style="color:var(--text2);text-align:center;padding:16px">No markets in this category</div>';
+}
+
+function filterMarket(cat,btn){
+  currentMarketFilter=cat;
+  document.querySelectorAll('.market-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderMarkets();
+}
+
+function placeBet(id,side,odds){
+  const amount=100;
+  myBets[id]={side,amount,odds};
+  const potential=(amount*odds).toFixed(0);
+  showToast(`✅ ${side} — ${amount} pts → win ${potential} pts`,side==='YES'?'var(--green)':'var(--red)');
+  renderMarkets();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function loading(){
+  return `<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
+}
+
+function abbreviate(n){
+  if(n>=1e9) return (n/1e9).toFixed(1)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toFixed(0);
+}
+
+function closeCoinModalOutside(e){
+  if(e.target===document.getElementById('coin-modal')) document.getElementById('coin-modal').classList.remove('open');
+}
+
+// ── START ─────────────────────────────────────────────────────────────
+init();
+setInterval(()=>{
+  if(document.getElementById('page-prices').classList.contains('active')) loadPrices();
+  if(document.getElementById('page-signal').classList.contains('active')) loadSignals();
+},30000);
+</script>
+</body>
+</html>
