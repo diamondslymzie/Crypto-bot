@@ -1,5 +1,6 @@
 import os
 import logging
+import requests
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -19,14 +20,14 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "0"))
 
 SYMBOLS = [
-    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT",
-    "BNB/USDT", "ADA/USDT", "DOGE/USDT", "TRX/USDT",
-    "AVAX/USDT", "MATIC/USDT", "LTC/USDT", "DOT/USDT"
+    "TON/USDT", "BNB/USDT", "BTC/USDT",
+    "ETH/USDT", "SOL/USDT", "XRP/USDT",
+    "OKB/USDT", "ASTR/USDT"
 ]
 
 AUTO_TRADE_AMOUNT = 5
-PRICE_ALERTS = {}  # {symbol: target_price}
-TRADE_LOG = []     # list of all trades for P&L summary
+PRICE_ALERTS = {}
+TRADE_LOG = []
 
 BOT_NAME = "⚡ LEVERAGE LIQUID"
 DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━"
@@ -53,6 +54,8 @@ def main_menu_keyboard():
          InlineKeyboardButton("📉 Sell", callback_data="sell_menu")],
         [InlineKeyboardButton("🔔 Price Alerts", callback_data="alerts_menu"),
          InlineKeyboardButton("📊 P&L Summary", callback_data="pnl_summary")],
+        [InlineKeyboardButton("🔥 Memecoins", callback_data="memecoins"),
+         InlineKeyboardButton("📋 Watchlist", callback_data="watchlist")],
         [InlineKeyboardButton("🔄 Auto-Trade ON/OFF", callback_data="toggle_auto"),
          InlineKeyboardButton("❓ Help", callback_data="help")],
     ])
@@ -66,7 +69,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{DIVIDER}\n\n"
         f"Welcome back, *{name}*.\n\n"
         f"Your AI-powered crypto trading assistant is online and ready.\n\n"
-        f"📡 Tracking *{len(SYMBOLS)} coins* in real-time\n"
+        f"📡 Tracking *{len(SYMBOLS)} coins* on watchlist\n"
+        f"🔥 Live memecoin signals every 30 mins\n"
         f"🧠 Powered by *Claude AI*\n"
         f"⚙️ Exchange: *Bitget*\n\n"
         f"{DIVIDER}\n"
@@ -120,9 +124,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         result = trader.market_buy(symbol, amount)
         TRADE_LOG.append({
-            "type": "BUY",
-            "symbol": symbol,
-            "amount": amount,
+            "type": "BUY", "symbol": symbol, "amount": amount,
             "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         })
         await update.message.reply_text(result, parse_mode="Markdown")
@@ -147,9 +149,7 @@ async def sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         result = trader.market_sell(symbol, quantity)
         TRADE_LOG.append({
-            "type": "SELL",
-            "symbol": symbol,
-            "quantity": quantity,
+            "type": "SELL", "symbol": symbol, "quantity": quantity,
             "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         })
         await update.message.reply_text(result, parse_mode="Markdown")
@@ -165,8 +165,8 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🤖 *System Status*\n\n"
         f"Auto-Trade: {'✅ ACTIVE' if auto else '❌ INACTIVE'}\n"
         f"Trade Amount: *${AUTO_TRADE_AMOUNT} USDT*\n"
-        f"Coins Tracked: *{len(SYMBOLS)}*\n"
-        f"Price Alerts Set: *{len(PRICE_ALERTS)}*\n"
+        f"Watchlist: *{len(SYMBOLS)} coins*\n"
+        f"Price Alerts: *{len(PRICE_ALERTS)}*\n"
         f"Trades Logged: *{len(TRADE_LOG)}*\n\n"
         f"🕐 {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
         parse_mode="Markdown"
@@ -199,14 +199,12 @@ async def set_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @auth
 async def set_alert(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Usage: /alert BTC 95000"""
     if len(context.args) < 2:
         await update.message.reply_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
             "🔔 *Price Alert Setup*\n\n"
             "Usage: `/alert <SYMBOL> <TARGET_PRICE>`\n"
-            "Example: `/alert BTC 95000`\n\n"
-            "You will be notified when the price hits your target.",
+            "Example: `/alert BTC 95000`",
             parse_mode="Markdown"
         )
         return
@@ -244,9 +242,7 @@ async def pnl_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not TRADE_LOG:
         await update.message.reply_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
-            "📊 *P&L Summary*\n\n"
-            "No trades recorded yet.\n"
-            "Trades will appear here once you start buying and selling.",
+            "📊 *P&L Summary*\n\nNo trades recorded yet.",
             parse_mode="Markdown"
         )
         return
@@ -269,6 +265,42 @@ async def pnl_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 @auth
+async def watchlist_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lines = [f"{BOT_NAME}\n{DIVIDER}\n\n📋 *Watchlist*\n"]
+    for symbol in SYMBOLS:
+        try:
+            price = trader.get_price(symbol)
+            lines.append(f"• *{symbol}* — ${price:,.4f}")
+        except Exception:
+            lines.append(f"• *{symbol}* — N/A")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
+@auth
+async def memecoins_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔥 Fetching trending memecoins...")
+    try:
+        res = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        data = res.json()
+        coins = data.get("coins", [])[:8]
+        lines = [f"{BOT_NAME}\n{DIVIDER}\n\n🔥 *Trending Memecoins*\n"]
+        for item in coins:
+            coin = item["item"]
+            name = coin.get("name", "")
+            symbol = coin.get("symbol", "")
+            rank = coin.get("market_cap_rank", "N/A")
+            score = coin.get("score", 0)
+            signal = "📈 BUY" if score < 3 else "⏸️ HOLD"
+            lines.append(
+                f"• *{name}* (${symbol})\n"
+                f"  Rank: #{rank} | Signal: {signal}\n"
+            )
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error fetching memecoins: {e}")
+
+
+@auth
 async def help_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         f"{BOT_NAME}\n{DIVIDER}\n\n"
@@ -277,14 +309,17 @@ async def help_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔹 `/portfolio` — View all balances\n"
         "🔹 `/analyze BTC` — AI analysis of any coin\n"
         "🔹 `/buy BTC 5` — Buy $5 worth of BTC\n"
-        "🔹 `/sell BTC 0.001` — Sell 0.001 BTC\n"
+        "🔹 `/sell BTC 0.001` — Sell BTC\n"
         "🔹 `/setamount 10` — Set auto-trade amount\n"
         "🔹 `/alert BTC 95000` — Set a price alert\n"
         "🔹 `/alerts` — View all active alerts\n"
         "🔹 `/pnl` — View trade summary\n"
-        "🔹 `/status` — Bot status\n\n"
+        "🔹 `/watchlist` — View your watchlist\n"
+        "🔹 `/memecoins` — Trending memecoin signals\n"
+        "🔹 `/status` — Bot status\n"
+        "🔹 `/help` — Full command list\n\n"
         f"{DIVIDER}\n"
-        "💡 _Auto-trade checks all coins every 60 minutes and only acts on high confidence AI signals._"
+        "💡 _Auto-trade scans every 30 minutes._"
     )
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
@@ -313,7 +348,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
             "📈 *Manual Buy*\n\n"
-            "Use the command:\n`/buy <SYMBOL> <USDT_AMOUNT>`\n\n"
+            "Use: `/buy <SYMBOL> <USDT_AMOUNT>`\n"
             "Example: `/buy BTC 5`",
             parse_mode="Markdown"
         )
@@ -322,7 +357,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
             "📉 *Manual Sell*\n\n"
-            "Use the command:\n`/sell <SYMBOL> <QUANTITY>`\n\n"
+            "Use: `/sell <SYMBOL> <QUANTITY>`\n"
             "Example: `/sell BTC 0.001`",
             parse_mode="Markdown"
         )
@@ -331,8 +366,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not PRICE_ALERTS:
             await query.edit_message_text(
                 f"{BOT_NAME}\n{DIVIDER}\n\n"
-                "🔔 *Price Alerts*\n\n"
-                "No alerts set yet.\n\n"
+                "🔔 *Price Alerts*\n\nNo alerts set.\n\n"
                 "Use `/alert BTC 95000` to set one.",
                 parse_mode="Markdown"
             )
@@ -346,25 +380,53 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not TRADE_LOG:
             await query.edit_message_text(
                 f"{BOT_NAME}\n{DIVIDER}\n\n"
-                "📊 *P&L Summary*\n\n"
-                "No trades recorded yet.",
+                "📊 *P&L Summary*\n\nNo trades recorded yet.",
                 parse_mode="Markdown"
             )
         else:
             buys = [t for t in TRADE_LOG if t["type"] == "BUY"]
             sells = [t for t in TRADE_LOG if t["type"] == "SELL"]
             total_bought = sum(t.get("amount", 0) for t in buys)
-            lines = [
+            await query.edit_message_text(
                 f"{BOT_NAME}\n{DIVIDER}\n\n"
                 f"📊 *Trading Summary*\n\n"
                 f"Total Trades: *{len(TRADE_LOG)}*\n"
                 f"Buys: *{len(buys)}* | Sells: *{len(sells)}*\n"
-                f"Total Deployed: *${total_bought:.2f} USDT*"
-            ]
+                f"Total Deployed: *${total_bought:.2f} USDT*",
+                parse_mode="Markdown"
+            )
+
+    elif data == "memecoins":
+        await query.edit_message_text("🔥 Fetching trending memecoins...")
+        try:
+            res = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+            data_mc = res.json()
+            coins = data_mc.get("coins", [])[:8]
+            lines = [f"{BOT_NAME}\n{DIVIDER}\n\n🔥 *Trending Memecoins*\n"]
+            for item in coins:
+                coin = item["item"]
+                name = coin.get("name", "")
+                symbol = coin.get("symbol", "")
+                rank = coin.get("market_cap_rank", "N/A")
+                score = coin.get("score", 0)
+                signal = "📈 BUY" if score < 3 else "⏸️ HOLD"
+                lines.append(f"• *{name}* (${symbol})\n  Rank: #{rank} | Signal: {signal}\n")
             await query.edit_message_text("\n".join(lines), parse_mode="Markdown")
+        except Exception as e:
+            await query.edit_message_text(f"❌ Error: {e}")
+
+    elif data == "watchlist":
+        lines = [f"{BOT_NAME}\n{DIVIDER}\n\n📋 *Watchlist*\n"]
+        for symbol in SYMBOLS:
+            try:
+                price = trader.get_price(symbol)
+                lines.append(f"• *{symbol}* — ${price:,.4f}")
+            except Exception:
+                lines.append(f"• *{symbol}* — N/A")
+        await query.edit_message_text("\n".join(lines), parse_mode="Markdown")
 
     elif data == "help":
-        help_text = (
+        await query.edit_message_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
             "❓ *Command Reference*\n\n"
             "🔹 `/start` — Main menu\n"
@@ -376,9 +438,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🔹 `/alert BTC 95000` — Price alert\n"
             "🔹 `/alerts` — View alerts\n"
             "🔹 `/pnl` — Trade summary\n"
-            "🔹 `/status` — Bot status"
+            "🔹 `/watchlist` — Your watchlist\n"
+            "🔹 `/memecoins` — Trending signals\n"
+            "🔹 `/status` — Bot status",
+            parse_mode="Markdown"
         )
-        await query.edit_message_text(help_text, parse_mode="Markdown")
 
     elif data == "toggle_auto":
         current = context.bot_data.get("auto_trade", False)
@@ -387,16 +451,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"{BOT_NAME}\n{DIVIDER}\n\n"
             f"🔄 *Auto-Trading: {state}*\n\n"
-            f"Tracking: *{len(SYMBOLS)} coins*\n"
+            f"Watchlist: *{len(SYMBOLS)} coins*\n"
             f"Amount per trade: *${AUTO_TRADE_AMOUNT} USDT*\n"
-            f"Frequency: *Every 60 minutes*\n"
+            f"Frequency: *Every 30 minutes*\n"
             f"Strategy: *High confidence AI signals only*",
             parse_mode="Markdown"
         )
 
 
 async def price_alert_job(context: ContextTypes.DEFAULT_TYPE):
-    """Check price alerts every 5 minutes."""
     if not PRICE_ALERTS:
         return
     chat_id = context.job.chat_id
@@ -411,19 +474,17 @@ async def price_alert_job(context: ContextTypes.DEFAULT_TYPE):
                     f"🔔 *Price Alert Triggered!*\n\n"
                     f"Symbol: *{symbol}*\n"
                     f"Target: *${target:,.2f}*\n"
-                    f"Current: *${current:,.2f}*\n\n"
-                    f"Your target price has been reached.",
+                    f"Current: *${current:,.2f}*",
                     parse_mode="Markdown"
                 )
                 triggered.append(symbol)
         except Exception as e:
-            logger.error(f"Alert check error for {symbol}: {e}")
+            logger.error(f"Alert error for {symbol}: {e}")
     for symbol in triggered:
         del PRICE_ALERTS[symbol]
 
 
 async def daily_summary_job(context: ContextTypes.DEFAULT_TYPE):
-    """Send daily P&L summary every 24 hours."""
     chat_id = context.job.chat_id
     try:
         portfolio = trader.get_portfolio()
@@ -444,6 +505,32 @@ async def daily_summary_job(context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Daily summary error: {e}")
 
 
+async def memecoin_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = context.job.chat_id
+    try:
+        res = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        data = res.json()
+        coins = data.get("coins", [])[:5]
+        if not coins:
+            return
+        lines = [f"{BOT_NAME}\n{DIVIDER}\n\n🔥 *Live Trending Memecoin Signals*\n"]
+        for item in coins:
+            coin = item["item"]
+            name = coin.get("name", "")
+            symbol = coin.get("symbol", "")
+            rank = coin.get("market_cap_rank", "N/A")
+            score = coin.get("score", 0)
+            signal = "📈 BUY" if score < 3 else "⏸️ HOLD"
+            lines.append(
+                f"• *{name}* (${symbol})\n"
+                f"  Rank: #{rank} | Signal: {signal}\n"
+            )
+        lines.append(f"{DIVIDER}\n_Next scan in 30 minutes_")
+        await context.bot.send_message(chat_id, "\n".join(lines), parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Memecoin job error: {e}")
+
+
 async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
     if not context.bot_data.get("auto_trade", False):
         return
@@ -452,7 +539,7 @@ async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
         chat_id,
         f"{BOT_NAME}\n{DIVIDER}\n\n"
         f"🔍 *Auto-Trade Scan Initiated*\n"
-        f"Analyzing {len(SYMBOLS)} coins...\n"
+        f"Analyzing {len(SYMBOLS)} watchlist coins...\n"
         f"🕐 {datetime.utcnow().strftime('%H:%M UTC')}",
         parse_mode="Markdown"
     )
@@ -464,14 +551,13 @@ async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
                 result = trader.market_buy(symbol, amount_usdt=AUTO_TRADE_AMOUNT)
                 signal = ai.get_signal(symbol)
                 TRADE_LOG.append({
-                    "type": "BUY",
-                    "symbol": symbol,
+                    "type": "BUY", "symbol": symbol,
                     "amount": AUTO_TRADE_AMOUNT,
                     "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
                 })
                 await context.bot.send_message(
                     chat_id,
-                    f"📈 *Auto-Buy Executed — {symbol}*\n\n{signal}\n\n{result}",
+                    f"📈 *Auto-Buy — {symbol}*\n\n{signal}\n\n{result}",
                     parse_mode="Markdown"
                 )
                 trades_made += 1
@@ -479,14 +565,12 @@ async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
                 result = trader.auto_sell(symbol)
                 signal = ai.get_signal(symbol)
                 TRADE_LOG.append({
-                    "type": "SELL",
-                    "symbol": symbol,
-                    "quantity": 0,
+                    "type": "SELL", "symbol": symbol, "quantity": 0,
                     "time": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
                 })
                 await context.bot.send_message(
                     chat_id,
-                    f"📉 *Auto-Sell Executed — {symbol}*\n\n{signal}\n\n{result}",
+                    f"📉 *Auto-Sell — {symbol}*\n\n{signal}\n\n{result}",
                     parse_mode="Markdown"
                 )
                 trades_made += 1
@@ -499,7 +583,7 @@ async def auto_trade_job(context: ContextTypes.DEFAULT_TYPE):
         f"✅ *Scan Complete*\n\n"
         f"Coins Analyzed: *{len(SYMBOLS)}*\n"
         f"Trades Executed: *{trades_made}*\n"
-        f"Next Scan: *60 minutes*",
+        f"Next Scan: *30 minutes*",
         parse_mode="Markdown"
     )
 
@@ -519,16 +603,20 @@ def main():
     app.add_handler(CommandHandler("alert", set_alert))
     app.add_handler(CommandHandler("alerts", list_alerts))
     app.add_handler(CommandHandler("pnl", pnl_summary))
+    app.add_handler(CommandHandler("watchlist", watchlist_cmd))
+    app.add_handler(CommandHandler("memecoins", memecoins_cmd))
     app.add_handler(CommandHandler("help", help_menu))
     app.add_handler(CallbackQueryHandler(button_handler))
 
     jq = app.job_queue
-    jq.run_repeating(auto_trade_job, interval=3600, first=60,
+    jq.run_repeating(auto_trade_job, interval=1800, first=60,
                      chat_id=ALLOWED_USER_ID, name="auto_trade")
     jq.run_repeating(price_alert_job, interval=300, first=30,
                      chat_id=ALLOWED_USER_ID, name="price_alerts")
     jq.run_repeating(daily_summary_job, interval=86400, first=86400,
                      chat_id=ALLOWED_USER_ID, name="daily_summary")
+    jq.run_repeating(memecoin_job, interval=1800, first=120,
+                     chat_id=ALLOWED_USER_ID, name="memecoins")
 
     logger.info("⚡ LEVERAGE LIQUID — Online")
     app.run_polling()
