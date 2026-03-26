@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Liquid Leverage</title>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">LIQUID LEVERAGE</div>
+        <div class="logo-sub">FUTURES TERMINAL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="settings-btn" onclick="openSettings()">⚙️</div>
+      <div class="status-dot" id="status-dot"></div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('portfolio',this)"><span>💼</span><span>PORTFOLIO</span></button>
+    <button class="nav-btn" onclick="showPage('trade',this)"><span>⚡</span><span>TRADE</span></button>
+    <button class="nav-btn" onclick="showPage('prices',this)"><span>📊</span><span>PRICES</span></button>
+    <button class="nav-btn" onclick="showPage('auto',this)"><span>🤖</span><span>AUTO</span></button>
+    <button class="nav-btn" onclick="showPage('signal',this)"><span>📡</span><span>SIGNAL</span></button>
+    <button class="nav-btn" onclick="showPage('market',this)"><span>🎯</span><span>MARKET</span></button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- PORTFOLIO PAGE -->
+    <div class="page active" id="page-portfolio">
+      <div class="card">
+        <div class="card-title">Futures Account</div>
+        <div style="font-size:28px;font-weight:800;font-family:var(--mono)" id="port-total">$—</div>
+        <div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:4px" id="port-margin">Available Margin: —</div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="refresh-btn" onclick="loadPortfolio()">↻ Refresh</button>
+          <div id="port-pnl" style="font-size:12px;font-family:var(--mono);padding:5px 10px;border-radius:7px;background:var(--card2);border:1px solid var(--border)">P&L: —</div>
+        </div>
+      </div>
+      <div class="section-title">Open Positions</div>
+      <div id="positions-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+      <div class="section-title">Account Stats</div>
+      <div class="stat-grid" id="account-stats">
+        <div class="stat-box"><div class="stat-val" id="stat-equity">—</div><div class="stat-lbl">TOTAL EQUITY</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-margin-ratio">—</div><div class="stat-lbl">MARGIN RATIO</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-unrealized">—</div><div class="stat-lbl">UNREALIZED PNL</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-realized">—</div><div class="stat-lbl">REALIZED PNL</div></div>
+      </div>
+    </div>
+
+    <!-- TRADE PAGE -->
+    <div class="page" id="page-trade">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin:0">Futures Trading</div>
+          <div id="trade-live-price" style="font-family:var(--mono);font-size:13px;color:var(--accent)">—</div>
+        </div>
+        <div class="input-wrap">
+          <input class="input-field" id="trade-pair" placeholder="Search pair e.g. BTCUSDT" oninput="searchPair(this.value)" style="padding-right:60px"/>
+          <span class="input-suffix">USDT</span>
+        </div>
+        <div id="pair-suggestions" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-top:-6px;margin-bottom:10px;overflow:hidden;max-height:160px;overflow-y:auto"></div>
+      </div>
+
+      <!-- TRADINGVIEW CHART -->
+      <div class="card" style="padding:10px">
+        <div id="tradingview-container" style="height:220px;border-radius:8px;overflow:hidden;background:var(--bg3)">
+          <div class="loading" style="height:220px"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- LONG / SHORT TABS -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn-primary btn-long" id="long-tab" onclick="setDirection('long')" style="flex:1;padding:10px;font-size:13px">📈 LONG</button>
+          <button class="btn-primary" id="short-tab" onclick="setDirection('short')" style="flex:1;padding:10px;font-size:13px;background:var(--card2);color:var(--text2);border:1px solid var(--border)">📉 SHORT</button>
+        </div>
+
+        <!-- LEVERAGE -->
+        <div class="leverage-wrap">
+          <div class="leverage-display">
+            <div style="font-size:12px;color:var(--text2)">Leverage</div>
+            <div class="leverage-val" id="leverage-display">10x</div>
+          </div>
+          <input type="range" class="leverage-slider" id="leverage-slider" min="1" max="100" value="10" oninput="updateLeverage(this.value)"/>
+          <div class="leverage-marks"><span>1x</span><span>25x</span><span>50x</span><span>75x</span><span>100x</span></div>
+        </div>
+
+        <!-- AMOUNT -->
+        <div class="section-title">Amount (USDT)</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="refresh-btn" onclick="setTradeAmount(10)">$10</button>
+          <button class="refresh-btn" onclick="setTradeAmount(25)">$25</button>
+          <button class="refresh-btn" onclick="setTradeAmount(50)">$50</button>
+          <button class="refresh-btn" onclick="setTradeAmount(100)">$100</button>
+        </div>
+        <div class="input-wrap">
+          <input class="input-field" type="number" id="trade-amount" placeholder="Amount in USDT" value="10"/>
+          <span class="input-suffix">USDT</span>
+        </div>
+
+        <!-- ORDER INFO -->
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+            <span style="color:var(--text2)">Pair</span>
+            <span id="order-pair" style="font-family:var(--mono);font-weight:700">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+            <span style="color:var(--text2)">Direction</span>
+            <span id="order-direction" style="font-family:var(--mono);font-weight:700;color:var(--green)">LONG</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+            <span style="color:var(--text2)">Leverage</span>
+            <span id="order-leverage" style="font-family:var(--mono);font-weight:700;color:var(--accent)">10x</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+            <span style="color:var(--text2)">Entry Price</span>
+            <span id="order-price" style="font-family:var(--mono)">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--text2)">Position Size</span>
+            <span id="order-size" style="font-family:var(--mono)">—</span>
+          </div>
+        </div>
+
+        <button class="btn-primary btn-long" id="execute-btn" onclick="confirmTrade()">📈 OPEN LONG</button>
+      </div>
+    </div>
+
+    <!-- PRICES PAGE -->
+    <div class="page" id="page-prices">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin:0">Top 20 Coins</div>
+          <button class="refresh-btn" onclick="loadPrices()">↻ Live</button>
+        </div>
+        <div class="input-wrap" style="margin-bottom:10px">
+          <input class="input-field" id="price-search" placeholder="Search coins..." oninput="filterPrices(this.value)" style="font-size:13px"/>
+        </div>
+        <div id="price-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+      </div>
+    </div>
+
+    <!-- AUTO PAGE -->
+    <div class="page" id="page-auto">
+      <div class="card">
+        <div class="toggle-wrap">
+          <div>
+            <div class="toggle-label">AI Auto-Trading</div>
+            <div class="toggle-sub" id="auto-status-text">Inactive — Enable to start</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="auto-toggle" onchange="toggleAuto()"/>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Auto-Trade Settings</div>
+        <div class="input-wrap">
+          <input class="input-field" type="number" id="auto-amount" placeholder="USDT per trade" value="10"/>
+          <span class="input-suffix">USDT</span>
+        </div>
+        <div class="leverage-wrap">
+          <div class="leverage-display">
+            <div style="font-size:12px;color:var(--text2)">Auto Leverage</div>
+            <div class="leverage-val" id="auto-leverage-display">10x</div>
+          </div>
+          <input type="range" class="leverage-slider" id="auto-leverage" min="1" max="100" value="10" oninput="document.getElementById('auto-leverage-display').textContent=this.value+'x'"/>
+          <div class="leverage-marks"><span>1x</span><span>25x</span><span>50x</span><span>75x</span><span>100x</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Performance</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-val" id="auto-trades">0</div><div class="stat-lbl">TOTAL TRADES</div></div>
+          <div class="stat-box"><div class="stat-val positive" id="auto-pnl">$0.00</div><div class="stat-lbl">AUTO P&L</div></div>
+          <div class="stat-box"><div class="stat-val" id="auto-wins">0</div><div class="stat-lbl">WINS</div></div>
+          <div class="stat-box"><div class="stat-val" id="auto-losses">0</div><div class="stat-lbl">LOSSES</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="section-title" style="margin:0;flex:1">Watchlist</div>
+        <button class="refresh-btn" onclick="openAddCoin()" style="margin-left:8px">+ Add Coin</button>
+      </div>
+      <div id="auto-watchlist"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+    </div>
+
+    <!-- SIGNAL PAGE -->
+    <div class="page" id="page-signal">
+      <div class="card" style="background:linear-gradient(135deg,rgba(0,212,255,0.04),transparent)">
+        <div class="card-title">📡 Momentum Signals</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:-6px">Live coins showing strong momentum — Updated every 30 mins</div>
+      </div>
+      <div id="signal-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+    </div>
+
+    <!-- MARKET PAGE -->
+    <div class="page" id="page-market">
+      <div class="card" style="background:linear-gradient(135deg,rgba(180,74,255,0.05),transparent);border-color:rgba(180,74,255,0.2)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span class="live-dot"></span>
+          <div class="card-title" style="margin:0;color:var(--purple)">Polymarket — Live Predictions</div>
+        </div>
+        <div style="font-size:10px;color:var(--text2)">Real prediction markets — Crypto, Politics & Sports</div>
+      </div>
+      <div class="market-tabs">
+        <div class="market-tab active" onclick="filterMarket('all',this)">All</div>
+        <div class="market-tab" onclick="filterMarket('crypto',this)">Crypto</div>
+        <div class="market-tab" onclick="filterMarket('politics',this)">Politics</div>
+        <div class="market-tab" onclick="filterMarket('sports',this)">Sports</div>
+      </div>
+      <div id="market-list"><div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettingsOutside(event)">
+  <div class="settings-panel">
+    <div class="settings-handle"></div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:14px">⚙️ Profile & Settings</div>
+    <div class="profile-avatar" id="profile-avatar">👤</div>
+    <div class="profile-name" id="profile-name-display">Trader</div>
+    <div class="profile-sub" id="profile-sub-display">Liquid Leverage Member</div>
+
+    <div class="setting-row">
+      <div><div class="setting-label">Display Name</div><div class="setting-sub">Your name in the app</div></div>
+      <input class="setting-input" id="setting-name" placeholder="Your name"/>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Risk Level</div><div class="setting-sub">Signal threshold</div></div>
+      <select class="setting-input" id="setting-risk">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Notifications</div><div class="setting-sub">Price & signal alerts</div></div>
+      <label class="toggle" style="margin:0">
+        <input type="checkbox" id="setting-notif" checked/>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:var(--text2);margin-bottom:10px">🔑 BITGET API CREDENTIALS</div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Stored locally on your device only</div>
+      <input class="api-key-input" id="api-key" type="password" placeholder="API Key"/>
+      <input class="api-key-input" id="api-secret" type="password" placeholder="API Secret" style="margin-top:6px"/>
+      <input class="api-key-input" id="api-passphrase" type="password" placeholder="Passphrase" style="margin-top:6px"/>
+    </div>
+
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:var(--text2);margin-bottom:10px">🎯 POLYMARKET CREDENTIALS</div>
+      <input class="api-key-input" id="poly-key" type="password" placeholder="Polymarket API Key"/>
+      <input class="api-key-input" id="poly-secret" type="password" placeholder="Polymarket Secret" style="margin-top:6px"/>
+    </div>
+
+    <div class="setting-row">
+      <div><div class="setting-label">Exchange</div></div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--accent)" id="exchange-status">Not Connected</div>
+    </div>
+    <div class="setting-row" style="border:none">
+      <div><div class="setting-label">Member Since</div></div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text2)" id="member-since">—</div>
+    </div>
+
+    <button class="settings-save-btn" onclick="saveSettings()">💾 Save & Connect</button>
+  </div>
+</div>
+
+<!-- COIN DETAIL MODAL -->
+<div class="modal" id="coin-modal" onclick="closeModalOutside(event,'coin-modal')">
+  <div class="modal-panel">
+    <div class="modal-handle"></div>
+    <div id="coin-modal-content"></div>
+  </div>
+</div>
+
+<!-- BET MODAL -->
+<div class="modal" id="bet-modal" onclick="closeModalOutside(event,'bet-modal')">
+  <div class="modal-panel">
+    <div class="modal-handle"></div>
+    <div id="bet-modal-content"></div>
+  </div>
+</div>
+
+<!-- ADD COIN MODAL -->
+<div class="modal" id="add-coin-modal" onclick="closeModalOutside(event,'add-coin-modal')">
+  <div class="modal-panel">
+    <div class="modal-handle"></div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:12px">+ Add to Watchlist</div>
+    <input class="input-field" id="add-coin-input" placeholder="e.g. BTCUSDT, ETHUSDT..." style="margin-bottom:12px"/>
+    <button class="btn-primary btn-accent" onclick="addToWatchlist()">Add Coin</button>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Confirm Trade</div>
+    <div class="confirm-body" id="confirm-body">Are you sure?</div>
+    <div class="confirm-btns">
+      <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn confirm-ok" id="confirm-ok-btn" onclick="executeTrade()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SCRIPTS -->
+<script src="portfolio.js"></script>
+<script src="trade.js"></script>
+<script src="prices.js"></script>
+<script src="auto.js"></script>
+<script src="signal.js"></script>
+<script src="market.js"></script>
+<script>
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.ready(); tg.expand(); }
+
+// ── GLOBALS ──────────────────────────────────────────────────────────
+window.APP = {
+  credentials: JSON.parse(localStorage.getItem('ll_creds')||'{}'),
+  profile: JSON.parse(localStorage.getItem('ll_profile')||'{}'),
+  watchlist: JSON.parse(localStorage.getItem('ll_watchlist')||'["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","BNBUSDT"]'),
+  autoTrades: 0, autoWins: 0, autoLosses: 0, autoPnl: 0,
+  currentPair: 'BTCUSDT',
+  direction: 'long',
+  leverage: 10,
+};
+
+// ── NAV ───────────────────────────────────────────────────────────────
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='portfolio') loadPortfolio();
+  if(name==='trade') initTrade();
+  if(name==='prices') loadPrices();
+  if(name==='auto') loadAutoPage();
+  if(name==='signal') loadSignals();
+  if(name==='market') loadMarkets();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function showToast(msg, color=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.color=color||'var(--text)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function loading(){
+  return `<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`;
+}
+function fmt(n, d=2){ if(!n) return '—'; if(n>=1e9) return '$'+(n/1e9).toFixed(1)+'B'; if(n>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'K'; return '$'+parseFloat(n).toFixed(d); }
+function fmtPrice(p){ return p>1000?'$'+p.toLocaleString('en',{maximumFractionDigits:0}):p>1?'$'+p.toFixed(2):'$'+p.toFixed(6); }
+function fmtChg(c){ const s=c>=0?'+':''; const col=c>=0?'var(--green)':'var(--red)'; return `<span style="color:${col}">${s}${c.toFixed(2)}%</span>`; }
+
+// ── CONFIRM ───────────────────────────────────────────────────────────
+let pendingAction = null;
+function showConfirm(title, body, action){
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  pendingAction = action;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('open'); pendingAction=null; }
+document.getElementById('confirm-ok-btn').addEventListener('click', ()=>{ if(pendingAction){ pendingAction(); closeConfirm(); } });
+
+// ── MODALS ────────────────────────────────────────────────────────────
+function closeModalOutside(e, id){ if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open'); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── SETTINGS ──────────────────────────────────────────────────────────
+function openSettings(){
+  const p = APP.profile;
+  const c = APP.credentials;
+  if(p.name) document.getElementById('setting-name').value=p.name;
+  if(p.risk) document.getElementById('setting-risk').value=p.risk;
+  if(c.apiKey) document.getElementById('api-key').value=c.apiKey;
+  if(c.apiSecret) document.getElementById('api-secret').value=c.apiSecret;
+  if(c.passphrase) document.getElementById('api-passphrase').value=c.passphrase;
+  if(c.polyKey) document.getElementById('poly-key').value=c.polyKey;
+  if(c.polySecret) document.getElementById('poly-secret').value=c.polySecret;
+  document.getElementById('profile-name-display').textContent=p.name||'Trader';
+  document.getElementById('member-since').textContent=p.memberSince||new Date().toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'});
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettingsOutside(e){ if(e.target===document.getElementById('settings-overlay')) document.getElementById('settings-overlay').classList.remove('open'); }
+function saveSettings(){
+  const name = document.getElementById('setting-name').value||'Trader';
+  const risk = document.getElementById('setting-risk').value;
+  const today = new Date().toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'});
+  APP.profile = { name, risk, memberSince: APP.profile.memberSince||today, notif: document.getElementById('setting-notif').checked };
+  APP.credentials = {
+    apiKey: document.getElementById('api-key').value,
+    apiSecret: document.getElementById('api-secret').value,
+    passphrase: document.getElementById('api-passphrase').value,
+    polyKey: document.getElementById('poly-key').value,
+    polySecret: document.getElementById('poly-secret').value,
+  };
+  localStorage.setItem('ll_profile', JSON.stringify(APP.profile));
+  localStorage.setItem('ll_creds', JSON.stringify(APP.credentials));
+  document.getElementById('profile-name-display').textContent=name;
+  document.getElementById('profile-sub-display').textContent=`Risk: ${risk.toUpperCase()} | Bitget Futures`;
+  document.getElementById('exchange-status').textContent = APP.credentials.apiKey ? 'Connected ✓' : 'Not Connected';
+  document.getElementById('settings-overlay').classList.remove('open');
+  showToast('✅ Settings saved!','var(--green)');
+  loadPortfolio();
+}
+
+// ── WATCHLIST ─────────────────────────────────────────────────────────
+function openAddCoin(){ openModal('add-coin-modal'); }
+function addToWatchlist(){
+  const val = document.getElementById('add-coin-input').value.trim().toUpperCase().replace('/','').replace('-','');
+  if(!val){ showToast('⚠️ Enter a valid pair','var(--yellow)'); return; }
+  const pair = val.endsWith('USDT')?val:val+'USDT';
+  if(!APP.watchlist.includes(pair)){ APP.watchlist.push(pair); localStorage.setItem('ll_watchlist',JSON.stringify(APP.watchlist)); }
+  closeModal('add-coin-modal');
+  loadAutoPage();
+  showToast(`✅ ${pair} added to watchlist`,'var(--green)');
+}
+function removeFromWatchlist(pair){
+  APP.watchlist = APP.watchlist.filter(p=>p!==pair);
+  localStorage.setItem('ll_watchlist',JSON.stringify(APP.watchlist));
+  loadAutoPage();
+  showToast(`Removed ${pair}`,'var(--text2)');
+}
+
+// ── STATUS DOT ────────────────────────────────────────────────────────
+function updateStatusDot(ok){
+  const dot = document.getElementById('status-dot');
+  dot.style.background = ok?'var(--green)':'var(--red)';
+  dot.style.boxShadow = ok?'0 0 8px var(--green)':'0 0 8px var(--red)';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+loadPortfolio();
+document.getElementById('profile-name-display').textContent = APP.profile.name||'Trader';
+document.getElementById('exchange-status').textContent = APP.credentials.apiKey?'Connected ✓':'Not Connected';
+if(APP.profile.memberSince) document.getElementById('member-since').textContent = APP.profile.memberSince;
+</script>
+</body>
+</html>
