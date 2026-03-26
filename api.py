@@ -1,8 +1,12 @@
 import os
 import threading
+import logging
 from flask import Flask, jsonify
 from flask_cors import CORS
 from trader import Trader
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -65,11 +69,17 @@ def health():
     return jsonify({'status': 'online', 'bot': 'Liquid Leverage'})
 
 def run_bot():
-    import subprocess
-    subprocess.Popen(['python', 'bot.py'])
+    try:
+        import asyncio
+        from bot import main
+        logger.info("Starting Telegram bot...")
+        asyncio.run(main())
+    except Exception as e:
+        logger.error(f"Bot error: {e}")
 
 if __name__ == '__main__':
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
     port = int(os.getenv('PORT', 5000))
+    logger.info(f"Starting API on port {port}")
     app.run(host='0.0.0.0', port=port)
