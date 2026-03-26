@@ -1,11 +1,11 @@
 import os
+import threading
 from flask import Flask, jsonify
 from flask_cors import CORS
 from trader import Trader
 
 app = Flask(__name__)
 CORS(app)
-
 trader = Trader()
 
 @app.route('/portfolio')
@@ -62,8 +62,14 @@ def price(symbol):
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'online', 'bot': 'Leverage Liquid'})
+    return jsonify({'status': 'online', 'bot': 'Liquid Leverage'})
+
+def run_bot():
+    import subprocess
+    subprocess.Popen(['python', 'bot.py'])
 
 if __name__ == '__main__':
-    port = int(os.getenv('API_PORT', 5000))
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
