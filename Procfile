@@ -1,2 +1,3 @@
-web: python api.py && python bot.py
+web: python api.py
+
 
