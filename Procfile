@@ -1,4 +1,2 @@
-web: python api.py
-
-
-
+web: python app.py
+worker: python bot.py
