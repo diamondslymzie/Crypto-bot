@@ -3,97 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Liquid Leverage</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Liquid Leverage Terminal</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
-        /* Base styles matching Telegram Dark Theme */
-        body {
-            background-color: #1c1c1d;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        :root {
+            --bg-color: #0b0e11;
+            --card-bg: #1e2329;
+            --text-color: #eaecef;
+            --muted-text: #707a8a;
+            --primary: #f0b90b;
+            --success: #0ecb81;
+            --danger: #f6465d;
+            --border-color: #2b3139;
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 15px;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        /* Profile Header Box */
-        .profile-header {
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
             display: flex;
-            align-items: center;
-            background-color: #2c2c2e;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-            margin-bottom: 20px;
-        }
-
-        /* Profile Picture Circular Frame */
-        .avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: #0088cc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            margin-right: 15px;
+            flex-direction: column;
+            height: 100vh;
             overflow: hidden;
         }
+        
+        /* Header Area */
+        .header {
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .market-selector {
+            background: #2b3139;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
 
-        .avatar img {
+        /* Main Content Grid */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            height: 300px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Order Book & Trade Panel */
+        .trading-panel {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .order-form {
+            background-color: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .order-book {
+            background-color: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .order-book-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .asks { color: var(--danger); }
+        .bids { color: var(--success); }
+        
+        /* Inputs & Buttons */
+        .input-group {
+            margin-bottom: 10px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--muted-text);
+            margin-bottom: 4px;
+        }
+        
+        .input-group input {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            background-color: #2b3139;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: right;
         }
-
-        /* User Text Info */
-        .user-info h2 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
+        
+        .trade-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #000;
+            cursor: pointer;
+            margin-top: 5px;
         }
-
-        .user-info p {
-            margin: 4px 0 0 0;
-            font-size: 14px;
-            color: #8e8e93;
+        
+        .buy-btn { background-color: var(--success); color: white; }
+        .sell-btn { background-color: var(--danger); color: white; }
+        
+        /* Bottom Navigation Bar */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--muted-text);
+            cursor: pointer;
+            width: 20%;
+        }
+        
+        .nav-item.active {
+            color: var(--primary);
+        }
+        
+        .nav-icon {
+            font-size: 1.4rem;
+            margin-bottom: 4px;
         }
     </style>
 </head>
 <body>
 
-    <div class="profile-header">
-        <div class="avatar" id="user-avatar">LL</div>
-        <div class="user-info">
-            <h2 id="username">Loading...</h2>
-            <p id="user-status">Standard Member</p>
+    <div class="header">
+        <div class="logo">⚡ LIQUID</div>
+        <div class="market-selector">
+            <span>BTC / USDT</span>
+            <span style="color: var(--success)">+2.45%</span>
+        </div>
+    </div>
+
+    <div class="content">
+        
+        <div class="chart-container" id="tv_chart"></div>
+        
+        <div class="trading-panel">
+            
+            <div class="order-form">
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <button style="flex: 1; padding: 5px; background: var(--success); border: none; border-radius: 4px; color: white; font-size: 0.8rem;">Buy</button>
+                    <button style="flex: 1; padding: 5px; background: #2b3139; border: none; border-radius: 4px; color: var(--muted-text); font-size: 0.8rem;">Sell</button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Price (USDT)</label>
+                    <input type="text" value="64,250.00">
+                </div>
+                
+                <div class="input-group">
+                    <label>Amount (BTC)</label>
+                    <input type="text" placeholder="0.00">
+                </div>
+                
+                <button class="trade-btn buy-btn">Buy BTC</button>
+            </div>
+            
+            <div class="order-book">
+                <div style="color: var(--muted-text); margin-bottom: 8px; font-size: 0.75rem;">Order Book</div>
+                <div class="asks">
+                    <div class="order-book-row"><span>64,258.50</span><span>0.412</span></div>
+                    <div class="order-book-row"><span>64,255.00</span><span>1.205</span></div>
+                    <div class="order-book-row"><span>64,252.10</span><span>0.110</span></div>
+                </div>
+                <div style="text-align: center; font-weight: bold; padding: 5px 0; font-size: 0.9rem;">64,250.00</div>
+                <div class="bids">
+                    <div class="order-book-row"><span>64,248.00</span><span>0.850</span></div>
+                    <div class="order-book-row"><span>64,245.50</span><span>2.114</span></div>
+                    <div class="order-book-row"><span>64,240.00</span><span>0.500</span></div>
+                </div>
+            </div>
+            
+        </div>
+
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <span class="nav-icon">📊</span>
+            <span>Spot</span>
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">📈</span>
+            <span>Futures</span>
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">🤖</span>
+            <span>Auto</span>
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">📡</span>
+            <span>Signals</span>
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings</span>
         </div>
     </div>
 
     <script>
-        // Tell Telegram the app is ready
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-
-        // Get the current user's data from Telegram
-        const user = window.Telegram.WebApp.initDataUnsafe?.user;
-
-        if (user) {
-            // Set the username
-            document.getElementById('username').innerText = user.first_name + (user.last_name ? " " + user.last_name : "");
-            
-            // If they have a profile pic, show it! If not, use their initials
-            if (user.photo_url) {
-                document.getElementById('user-avatar').innerHTML = `<img src="${user.photo_url}" alt="avatar">`;
-            } else {
-                document.getElementById('user-avatar').innerText = user.first_name.charAt(0).toUpperCase();
-            }
-        } else {
-            // Fallback for viewing in a normal browser
-            document.getElementById('username').innerText = "Guest User";
-        }
+        // Load an active TradingView chart automatically!
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": "BINANCE:BTCUSDT",
+            "interval": "60",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#1e2329",
+            "enable_publishing": false,
+            "hide_top_toolbar": true,
+            "hide_legend": true,
+            "save_image": false,
+            "container_id": "tv_chart"
+        });
     </script>
-
 </body>
 </html>
