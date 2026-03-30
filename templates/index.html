@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Liquid Leverage</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Base styles matching Telegram Dark Theme */
+        body {
+            background-color: #1c1c1d;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+        }
 
+        /* Profile Header Box */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            background-color: #2c2c2e;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        /* Profile Picture Circular Frame */
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #0088cc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            margin-right: 15px;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* User Text Info */
+        .user-info h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .user-info p {
+            margin: 4px 0 0 0;
+            font-size: 14px;
+            color: #8e8e93;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="profile-header">
+        <div class="avatar" id="user-avatar">LL</div>
+        <div class="user-info">
+            <h2 id="username">Loading...</h2>
+            <p id="user-status">Standard Member</p>
+        </div>
+    </div>
+
+    <script>
+        // Tell Telegram the app is ready
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+
+        // Get the current user's data from Telegram
+        const user = window.Telegram.WebApp.initDataUnsafe?.user;
+
+        if (user) {
+            // Set the username
+            document.getElementById('username').innerText = user.first_name + (user.last_name ? " " + user.last_name : "");
+            
+            // If they have a profile pic, show it! If not, use their initials
+            if (user.photo_url) {
+                document.getElementById('user-avatar').innerHTML = `<img src="${user.photo_url}" alt="avatar">`;
+            } else {
+                document.getElementById('user-avatar').innerText = user.first_name.charAt(0).toUpperCase();
+            }
+        } else {
+            // Fallback for viewing in a normal browser
+            document.getElementById('username').innerText = "Guest User";
+        }
+    </script>
+
+</body>
+</html>
