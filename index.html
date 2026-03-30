@@ -158,6 +158,7 @@
             justify-content: space-around;
             padding: 10px 0;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            z-index: 999; /* Forces the nav bar to stay on top of everything */
         }
         
         .nav-item {
@@ -168,6 +169,7 @@
             color: var(--muted-text);
             cursor: pointer;
             width: 20%;
+            padding: 5px 0;
         }
         
         .nav-item.active {
@@ -190,7 +192,7 @@
         </div>
     </div>
 
-    <div class="content">
+    <div class="content" id="main-content">
         
         <div class="chart-container" id="tv_chart"></div>
         
@@ -235,66 +237,65 @@
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item active">
+        <div class="nav-item active" onclick="switchTab('Spot')">
             <span class="nav-icon">📊</span>
             <span>Spot</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="switchTab('Futures')">
             <span class="nav-icon">📈</span>
             <span>Futures</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="switchTab('Auto')">
             <span class="nav-icon">🤖</span>
             <span>Auto</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="switchTab('Signals')">
             <span class="nav-icon">📡</span>
             <span>Signals</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="switchTab('Settings')">
             <span class="nav-icon">⚙️</span>
             <span>Settings</span>
         </div>
     </div>
 
     <script>
-        // Load an active TradingView chart automatically!
-        new TradingView.widget({
-            "autosize": true,
-            "symbol": "BINANCE:BTCUSDT",
-            "interval": "60",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#1e2329",
-            "enable_publishing": false,
-            "hide_top_toolbar": true,
-            "hide_legend": true,
-            "save_image": false,
-            "container_id": "tv_chart"
-        });
-    </script>
-    <script>
-    // Grab all the navigation items and the content area
-    const navItems = document.querySelectorAll('.nav-item');
-    const contentArea = document.querySelector('.content');
+        // 1. Initialize the TradingView Chart
+        function loadChart() {
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": "BINANCE:BTCUSDT",
+                "interval": "60",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#1e2329",
+                "enable_publishing": false,
+                "hide_top_toolbar": true,
+                "hide_legend": true,
+                "save_image": false,
+                "container_id": "tv_chart"
+            });
+        }
+        
+        loadChart();
 
-    // Add a click listener to every tab
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            // Remove the gold color from whichever tab has it
-            document.querySelector('.nav-item.active').classList.remove('active');
+        // 2. Tab Switching Brain
+        function switchTab(tabName) {
+            const contentArea = document.getElementById('main-content');
             
-            // Add the gold color to the tab you just clicked
-            item.classList.add('active');
+            // Remove active gold color from all tabs
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
             
-            // Get the name of the tab you clicked
-            const tabName = item.querySelector('span:last-child').innerText;
+            // Add gold color to the clicked tab
+            event.currentTarget.classList.add('active');
             
-            // Change the content depending on the tab!
+            // Change the content!
             if (tabName === 'Spot') {
-                location.reload(); // Quickest way to load the chart back up!
+                location.reload(); // Re-loads the chart smoothly
             } else if (tabName === 'Futures') {
                 contentArea.innerHTML = `
                     <div style="padding: 20px; text-align: center;">
@@ -323,7 +324,7 @@
                         <h2 style="color: var(--primary); margin-bottom: 15px;">📡 High-Conviction Signals</h2>
                         <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: var(--success)">LONG BTC</span>
+                                <span style="color: var(--success); font-weight:bold;">LONG BTC</span>
                                 <span style="color: var(--muted-text)">2m ago</span>
                             </div>
                             <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 5px;">Leverage: 10x | Target: $68,000</p>
@@ -339,9 +340,7 @@
                         </div>
                     </div>`;
             }
-        });
-    });
-</script>
-
+        }
+    </script>
 </body>
 </html>
