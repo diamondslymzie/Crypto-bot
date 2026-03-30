@@ -158,7 +158,7 @@
             justify-content: space-around;
             padding: 10px 0;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-            z-index: 999; /* Forces the nav bar to stay on top of everything */
+            z-index: 999;
         }
         
         .nav-item {
@@ -206,29 +206,29 @@
                 
                 <div class="input-group">
                     <label>Price (USDT)</label>
-                    <input type="text" value="64,250.00">
+                    <input type="text" id="trade-price" value="64250.00">
                 </div>
                 
                 <div class="input-group">
                     <label>Amount (BTC)</label>
-                    <input type="text" placeholder="0.00">
+                    <input type="text" id="trade-amount" placeholder="0.01">
                 </div>
                 
-                <button class="trade-btn buy-btn">Buy BTC</button>
+                <button class="trade-btn buy-btn" onclick="triggerTrade()">Buy BTC</button>
             </div>
             
             <div class="order-book">
                 <div style="color: var(--muted-text); margin-bottom: 8px; font-size: 0.75rem;">Order Book</div>
                 <div class="asks">
-                    <div class="order-book-row"><span>64,258.50</span><span>0.412</span></div>
-                    <div class="order-book-row"><span>64,255.00</span><span>1.205</span></div>
-                    <div class="order-book-row"><span>64,252.10</span><span>0.110</span></div>
+                    <div class="order-book-row"><span>64258.50</span><span>0.412</span></div>
+                    <div class="order-book-row"><span>64255.00</span><span>1.205</span></div>
+                    <div class="order-book-row"><span>64252.10</span><span>0.110</span></div>
                 </div>
-                <div style="text-align: center; font-weight: bold; padding: 5px 0; font-size: 0.9rem;">64,250.00</div>
+                <div style="text-align: center; font-weight: bold; padding: 5px 0; font-size: 0.9rem;">64250.00</div>
                 <div class="bids">
-                    <div class="order-book-row"><span>64,248.00</span><span>0.850</span></div>
-                    <div class="order-book-row"><span>64,245.50</span><span>2.114</span></div>
-                    <div class="order-book-row"><span>64,240.00</span><span>0.500</span></div>
+                    <div class="order-book-row"><span>64248.00</span><span>0.850</span></div>
+                    <div class="order-book-row"><span>64245.50</span><span>2.114</span></div>
+                    <div class="order-book-row"><span>64240.00</span><span>0.500</span></div>
                 </div>
             </div>
             
@@ -284,61 +284,46 @@
         // 2. Tab Switching Brain
         function switchTab(tabName) {
             const contentArea = document.getElementById('main-content');
-            
-            // Remove active gold color from all tabs
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Add gold color to the clicked tab
+            document.querySelectorAll('.nav-item').forEach(item => { item.classList.remove('active'); });
             event.currentTarget.classList.add('active');
             
-            // Change the content!
             if (tabName === 'Spot') {
-                location.reload(); // Re-loads the chart smoothly
+                location.reload(); 
             } else if (tabName === 'Futures') {
-                contentArea.innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
-                        <h2 style="color: var(--primary); margin-bottom: 15px;">Futures Trading</h2>
-                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <p style="color: var(--muted-text);">Position: No Open Positions</p>
-                            <hr style="border-color: var(--border-color); margin: 15px 0;">
-                            <div style="display: flex; gap: 10px;">
-                                <button style="flex: 1; padding: 10px; background: var(--success); border: none; border-radius: 4px; color: white;">Long</button>
-                                <button style="flex: 1; padding: 10px; background: var(--danger); border: none; border-radius: 4px; color: white;">Short</button>
-                            </div>
-                        </div>
-                    </div>`;
+                contentArea.innerHTML = `<div style="padding: 20px; text-align: center;"><h2 style="color: var(--primary); margin-bottom: 15px;">Futures Trading</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p style="color: var(--muted-text);">Position: No Open Positions</p><hr style="border-color: var(--border-color); margin: 15px 0;"><div style="display: flex; gap: 10px;"><button style="flex: 1; padding: 10px; background: var(--success); border: none; border-radius: 4px; color: white;">Long</button><button style="flex: 1; padding: 10px; background: var(--danger); border: none; border-radius: 4px; color: white;">Short</button></div></div></div>`;
             } else if (tabName === 'Auto') {
-                contentArea.innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
-                        <h2 style="color: var(--primary); margin-bottom: 15px;">🤖 AI Auto-Trader</h2>
-                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <p>Bot Status: <span style="color: var(--danger)">OFF</span></p>
-                            <button style="width: 100%; margin-top: 15px; padding: 10px; background: var(--primary); border: none; border-radius: 4px; font-weight: bold; color: #000;">Turn Bot ON</button>
-                        </div>
-                    </div>`;
+                contentArea.innerHTML = `<div style="padding: 20px; text-align: center;"><h2 style="color: var(--primary); margin-bottom: 15px;">🤖 AI Auto-Trader</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p>Bot Status: <span style="color: var(--danger)">OFF</span></p><button style="width: 100%; margin-top: 15px; padding: 10px; background: var(--primary); border: none; border-radius: 4px; font-weight: bold; color: #000;">Turn Bot ON</button></div></div>`;
             } else if (tabName === 'Signals') {
-                contentArea.innerHTML = `
-                    <div style="padding: 20px;">
-                        <h2 style="color: var(--primary); margin-bottom: 15px;">📡 High-Conviction Signals</h2>
-                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <span style="color: var(--success); font-weight:bold;">LONG BTC</span>
-                                <span style="color: var(--muted-text)">2m ago</span>
-                            </div>
-                            <p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 5px;">Leverage: 10x | Target: $68,000</p>
-                        </div>
-                    </div>`;
+                contentArea.innerHTML = `<div style="padding: 20px;"><h2 style="color: var(--primary); margin-bottom: 15px;">📡 High-Conviction Signals</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;"><div style="display: flex; justify-content: space-between;"><span style="color: var(--success); font-weight:bold;">LONG BTC</span><span style="color: var(--muted-text)">2m ago</span></div><p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 5px;">Leverage: 10x | Target: $68,000</p></div></div>`;
             } else if (tabName === 'Settings') {
-                contentArea.innerHTML = `
-                    <div style="padding: 20px;">
-                        <h2 style="color: var(--primary); margin-bottom: 15px;">⚙️ Settings</h2>
-                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <p style="font-size: 0.9rem;">Connected Exchange: <b style="color: white">Bitget</b></p>
-                            <button style="width: 100%; margin-top: 15px; padding: 10px; background: #2b3139; border: none; border-radius: 4px; color: white;">Disconnect API</button>
-                        </div>
-                    </div>`;
+                contentArea.innerHTML = `<div style="padding: 20px;"><h2 style="color: var(--primary); margin-bottom: 15px;">⚙️ Settings</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p style="font-size: 0.9rem;">Connected Exchange: <b style="color: white">Bitget</b></p><button style="width: 100%; margin-top: 15px; padding: 10px; background: #2b3139; border: none; border-radius: 4px; color: white;">Disconnect API</button></div></div>`;
+            }
+        }
+
+        // 3. API Bridge Brain (Your URL is inserted here!)
+        async function triggerTrade() {
+            const amount = document.getElementById('trade-amount').value || "0.01";
+            const price = document.getElementById('trade-price').value || "64250.00";
+            
+            const tradeData = {
+                action: "buy",
+                amount: amount,
+                price: price
+            };
+
+            try {
+                // Here is your live Railway URL baked in!
+                const response = await fetch('https://Worker-production-b4fa.up.railway.app/api/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tradeData)
+                });
+
+                const result = await response.json();
+                alert(result.message); 
+            } catch (error) {
+                alert("Oops! Could not connect to the trading server.");
+                console.error(error);
             }
         }
     </script>
