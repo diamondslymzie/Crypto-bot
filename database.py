@@ -1,60 +1,32 @@
-import sqlite3
-from datetime import datetime
+import os
+from supabase import create_client, Client
 
-DB_NAME = "liquid.db"
+# 1. This connects to the keys you added to Railway
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
 
-def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
+# 2. This function saves a new user when they join
+def save_new_user(user_id, username):
+    # Check if the user is already in our 'users' folder
+    user_data = supabase.table("users").select("*").eq("user_id", user_id).execute()
+    
+    # If they are not in there, add them!
+    if not user_data.data:
+        supabase.table("users").insert({
+            "user_id": user_id,
+            "username": username,
+            "join_date": "2026-03-30"
+        }).execute()
+        print("✅ New user saved to Supabase!")
 
-    # 1. Users Table: Stores API keys and Profile info
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            bitget_key TEXT,
-            bitget_secret TEXT,
-            bitget_passphrase TEXT,
-            risk_level TEXT DEFAULT 'Medium',
-            join_date TEXT,
-            notifications_on INTEGER DEFAULT 1
-        )
-    ''')
-
-    # 2. Trades Table: Stores every Buy/Sell for P&L tracking
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS trades (
-            trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            symbol TEXT,
-            side TEXT, -- 'Long' or 'Short'
-            entry_price REAL,
-            exit_price REAL,
-            amount REAL,
-            pnl REAL,
-            timestamp TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
-        )
-    ''')
-
-    # 3. Bets Table: For the Prediction Market (Polymarket style)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS bets (
-            bet_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            market_name TEXT,
-            selection TEXT, -- 'YES' or 'NO'
-            amount REAL,
-            odds REAL,
-            status TEXT DEFAULT 'Open', -- 'Open', 'Won', 'Lost'
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-    print("✅ Database initialized successfully.")
-
-# Run this once to create the file
-if __name__ == "__main__":
-    init_db()
+# 3. This function saves a trade when the bot buys/sells
+def save_new_trade(user_id, symbol, side, amount, pnl):
+    supabase.table("trades").insert({
+        "user_id": user_id,
+        "symbol": symbol,
+        "side": side,
+        "amount": amount,
+        "pnl": pnl
+    }).execute()
+    print("✅ Trade saved to Supabase!")
