@@ -1,3 +1,4 @@
+import subprocess
 import os
 from flask import Flask, render_template
 
@@ -9,6 +10,10 @@ def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    # Railway gives us a random port to use, we have to listen to it!
+    # This starts your bot.py in the background automatically!
+    subprocess.Popen(["python", "bot.py"])
+    
+    # This starts your website on the port Railway wants
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
