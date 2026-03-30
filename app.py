@@ -1,15 +1,11 @@
 import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
 
-# 🔓 Allows GitHub Pages to talk to Railway without security blocks
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# 🔓 This automatically handles all the complicated browser security checks!
+CORS(app)
 
 # 🏠 Basic load screen to prove it's online
 @app.route('/')
@@ -17,16 +13,16 @@ def home():
     return "Liquid Leverage Backend is Running!"
 
 # 🚨 Listens for clicks from the Mini App
-@app.route('/api/trade', methods=['POST', 'OPTIONS'])
+@app.route('/api/trade', methods=['POST'])
 def execute_trade():
-    if request.method == 'OPTIONS':
-        return jsonify({"status": "ok"})
-        
     data = request.get_json()
-    action = data.get('action') 
-    amount = data.get('amount')
-    price = data.get('price')
     
+    # Safely get the data coming in from GitHub
+    action = data.get('action') if data else 'unknown'
+    amount = data.get('amount') if data else '0'
+    price = data.get('price') if data else '0'
+    
+    # This prints in your Railway logs to prove it's connected!
     print(f"🚨 Mini App Request: Attempting to {action} {amount} BTC at ${price}")
     
     return jsonify({
