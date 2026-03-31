@@ -29,11 +29,6 @@ def get_bitget_client():
         'secret': BG_SECRET,
         'password': BG_PASSPHRASE,
         'enableRateLimit': True,
-        # 🛠️ THIS FIXES THE ERROR IN YOUR SCREENSHOT!
-        # This tells CCXT to let us use the BTC amount directly.
-        'options': {
-            'createMarketBuyOrderRequiresPrice': False,
-        }
     })
 
 async def execute_bitget_trade(action, amount, price):
@@ -45,17 +40,26 @@ async def execute_bitget_trade(action, amount, price):
     symbol = 'BTC/USDT'
     
     try:
-        print(f"🔄 Sending {action.upper()} order to Bitget for {amount} BTC...")
-        
         loop = asyncio.get_event_loop()
         
+        # 🛠️ FIX FOR THE "LESS THAN 1 USDT" ERROR:
+        # We fetch the actual current price to calculate the correct cost
+        ticker = await loop.run_in_executor(None, lambda: exchange.fetch_ticker(symbol))
+        current_price = ticker['last']
+        
+        # Calculate how many USDT we need to spend to get that amount of BTC
+        total_cost_usdt = float(amount) * current_price
+        
+        print(f"🔄 Sending {action.upper()} order. Buying {amount} BTC at approx ${current_price:.2f} (Total Cost: ${total_cost_usdt:.2f})")
+        
         if action.lower() == 'buy':
-            # Run the Bitget command safely in the background
+            # Bitget wants the amount of USDT to spend for a market buy
             order = await loop.run_in_executor(
                 None, 
-                lambda: exchange.create_market_buy_order(symbol, float(amount))
+                lambda: exchange.create_market_buy_order(symbol, total_cost_usdt)
             )
         elif action.lower() == 'sell':
+            # Market sell still takes the actual amount of BTC you want to sell
             order = await loop.run_in_executor(
                 None, 
                 lambda: exchange.create_market_sell_order(symbol, float(amount))
@@ -90,7 +94,7 @@ async def handle_webview_trade(request):
 
         # Return the actual success/failure message from Bitget to your screen!
         return web.Response(
-            text=f"Trade Status: {trade_result}\n\nProcessed: {action.upper()} {amount} BTC at approx market price.", 
+            text=f"Trade Status: {trade_result}\n\nProcessed: {action.upper()} {amount} BTC at market price.", 
             status=200
         )
         
