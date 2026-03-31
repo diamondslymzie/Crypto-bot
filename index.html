@@ -251,7 +251,7 @@
     <script>
         // Initialize Telegram WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Opens full screen in Telegram
+        tg.expand();
 
         function loadChart() {
             new TradingView.widget({
@@ -290,22 +290,22 @@
             }
         }
 
-        // 🚀 This uses Telegram's internal network to send the trade command!
         function triggerTrade() {
             const amount = document.getElementById('trade-amount').value || "0.01";
             const price = document.getElementById('trade-price').value || "64250.00";
             
-            const tradeData = {
-                type: "trade_request",
-                action: "buy",
-                amount: amount,
-                price: price
-            };
+            // 🤖 A formatted text message the bot can easily read
+            const textMessage = `/trade buy ${amount} BTC at ${price}`;
 
-            // Sends a secure background ping straight to your Telegram Bot
-            tg.sendData(JSON.stringify(tradeData));
+            try {
+                // Method 1: Tries to send it natively (requires Keyboard button)
+                tg.sendData(textMessage);
+            } catch (e) {
+                // Method 2: Fallback that types it manually if security blocks sendData
+                tg.sendText(textMessage);
+            }
             
-            // Auto-closes the window so the user goes back to the chat to see the bot answer
+            // Auto-closes the window
             tg.close();
         }
     </script>
