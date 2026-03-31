@@ -38,7 +38,7 @@
             border-radius: 6px;
             cursor: pointer;
             width: 100%;
-            transition: background-color 0.2s;
+            transition: background-color: 0.2s;
         }
         .btn:hover { background-color: #00c465; }
         #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; }
@@ -50,13 +50,12 @@
     <h1>Leverage Bot</h1>
     <p>Tap below to fire a test market order on Bitget.</p>
     
-    <button class="btn" onclick="triggerTrade()">Buy BTC ($10 USDT)</button>
+    <button class="btn" onclick="triggerTrade()">Buy BTC ($1 USDT)</button>
     
     <div id="status">Waiting for action...</div>
 </div>
 
 <script>
-    // Expand the Telegram Mini App to full screen
     Telegram.WebApp.expand();
 
     function triggerTrade() {
@@ -64,10 +63,8 @@
         statusDiv.innerText = "Sending signal to Vercel...";
         statusDiv.style.color = "#ffeb3b";
 
-        // Your specific Vercel URL targeting the serverless endpoint
         const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade";
 
-        // We ping Vercel with a GET request
         fetch(vercelUrl)
             .then(response => response.text())
             .then(data => {
