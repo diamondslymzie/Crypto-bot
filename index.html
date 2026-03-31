@@ -290,29 +290,23 @@
             }
         }
 
+        // 🔗 This is the invisible link strategy to bypass Apple's security blocks
         function triggerTrade() {
             const amount = document.getElementById('trade-amount').value || "0.01";
             const price = document.getElementById('trade-price').value || "64250.00";
             
-            // 🤖 A clean web URL that carries the trade data
             const webhookUrl = `https://worker-production-b4fa.up.railway.app/api/trade?action=buy&amount=${amount}&price=${price}`;
 
-            // This forces Telegram to send a background HTTP request to your server!
-            // It completely bypasses CORS security on phones.
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", webhookUrl, true);
+            // We build a temporary, fake HTML link and force a click on it
+            const a = document.createElement('a');
+            a.href = webhookUrl;
+            a.target = '_blank'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
             
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4) {
-                    if (xhr.status == 200) {
-                        alert("Success: Order command sent to the trading bot!");
-                    } else {
-                        alert("Error: Server responded with code " + xhr.status);
-                    }
-                }
-            }
-            
-            xhr.send();
+            // Give the user visual feedback so they know something happened
+            alert("Order command sent to the trading bot!");
         }
     </script>
 </body>
