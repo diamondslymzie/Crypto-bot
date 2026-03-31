@@ -29,10 +29,15 @@ def get_bitget_client():
         'secret': BG_SECRET,
         'password': BG_PASSPHRASE,
         'enableRateLimit': True,
+        # 🛠️ THIS FIXES THE ERROR IN YOUR SCREENSHOT!
+        # This tells CCXT to let us use the BTC amount directly.
+        'options': {
+            'createMarketBuyOrderRequiresPrice': False,
+        }
     })
 
 async def execute_bitget_trade(action, amount, price):
-    """Executes a live market or limit order on Bitget."""
+    """Executes a live market order on Bitget."""
     exchange = get_bitget_client()
     if not exchange:
         return "Failed: Bitget API keys are not configured in Railway."
@@ -40,14 +45,12 @@ async def execute_bitget_trade(action, amount, price):
     symbol = 'BTC/USDT'
     
     try:
-        # We use a standard market order for instant execution from the button
         print(f"🔄 Sending {action.upper()} order to Bitget for {amount} BTC...")
         
-        # CCXT requires operations to be synchronous or wrapped properly
-        # We run it in an executor so it doesn't freeze the bot
         loop = asyncio.get_event_loop()
         
         if action.lower() == 'buy':
+            # Run the Bitget command safely in the background
             order = await loop.run_in_executor(
                 None, 
                 lambda: exchange.create_market_buy_order(symbol, float(amount))
@@ -82,7 +85,7 @@ async def handle_webview_trade(request):
         
         print(f"📥 [WEBHOOK] Received signal: {action.upper()} {amount} BTC")
 
-        # 🎯 Trigger the Bitget trade live!
+        # Trigger the Bitget trade live!
         trade_result = await execute_bitget_trade(action, amount, price)
 
         # Return the actual success/failure message from Bitget to your screen!
