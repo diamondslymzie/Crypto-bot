@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/trade.py": {
+      "runtime": "@vercel/python"
+    }
+  },
   "rewrites": [
     { "source": "/api/trade", "destination": "/api/trade.py" }
   ]
