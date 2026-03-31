@@ -312,20 +312,22 @@
             };
 
             try {
-                // Here is your live Railway URL baked in!
+                // This forcefully hits the Railway network API
                 const response = await fetch('https://Worker-production-b4fa.up.railway.app/api/trade', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors', // Forces Cross-Origin Resource Sharing
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(tradeData)
                 });
 
                 const result = await response.json();
-                alert(result.message); 
+                alert("Success: " + result.message); 
             } catch (error) {
-                alert("Oops! Could not connect to the trading server.");
+                // 🚨 This will now alert the EXACT error message on your screen!
+                alert("Error Details: " + error.message);
                 console.error(error);
             }
         }
-    </script>
-</body>
-</html>
+
