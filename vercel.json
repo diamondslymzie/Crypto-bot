@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/trade.py": {
-      "runtime": "python@3.9"
-    }
-  },
   "rewrites": [
     { "source": "/api/trade", "destination": "/api/trade.py" }
   ]
