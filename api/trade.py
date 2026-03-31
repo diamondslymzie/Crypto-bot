@@ -21,7 +21,7 @@ def handler(request):
         symbol = 'BTC/USDT'
         usdt_to_spend = 1.0
         
-        # We tell Bitget to buy based on the dollar amount (USDT)
+        # Tell Bitget to buy based on the dollar amount (USDT)
         order = exchange.create_order(
             symbol, 'market', 'buy', None, None, {'quoteOrderQty': usdt_to_spend}
         )
@@ -38,7 +38,7 @@ def handler(request):
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'text/plain',
-            'Access-Control-Allow-Origin': '*' # Prevents browser blocks
+            'Access-Control-Allow-Origin': '*' 
         },
         'body': message
     }
