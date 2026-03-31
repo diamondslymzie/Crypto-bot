@@ -9,5 +9,5 @@ flask-cors>=4.0.0
 cryptography==42.0.5
 supabase
 flask
-gunicorn
 flask-cors
+gunicorn
