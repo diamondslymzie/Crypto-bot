@@ -2,312 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Liquid Leverage Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Leverage Trading</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <style>
-        :root {
-            --bg-color: #0b0e11;
-            --card-bg: #1e2329;
-            --text-color: #eaecef;
-            --muted-text: #707a8a;
-            --primary: #f0b90b;
-            --success: #0ecb81;
-            --danger: #f6465d;
-            --border-color: #2b3139;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
             height: 100vh;
-            overflow: hidden;
+            margin: 0;
         }
-        
-        /* Header Area */
-        .header {
-            padding: 15px;
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .container {
+            text-align: center;
+            background-color: #1e1e1e;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            width: 80%;
+            max-width: 400px;
         }
-        
-        .logo { color: var(--primary); font-weight: bold; font-size: 1.2rem; }
-        
-        .market-selector {
-            background: #2b3139;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* Main Content Grid */
-        .content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            padding-bottom: 80px; 
-        }
-        
-        /* Chart Container */
-        .chart-container {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            height: 300px;
-            margin-bottom: 15px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-        
-        /* Order Book & Trade Panel */
-        .trading-panel {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .order-form {
-            background-color: var(--card-bg);
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .order-book {
-            background-color: var(--card-bg);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            border: 1px solid var(--border-color);
-        }
-        
-        .order-book-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-        
-        .asks { color: var(--danger); }
-        .bids { color: var(--success); }
-        
-        /* Inputs & Buttons */
-        .input-group { margin-bottom: 10px; }
-        
-        .input-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--muted-text);
-            margin-bottom: 4px;
-        }
-        
-        .input-group input {
-            width: 100%;
-            background-color: #2b3139;
-            border: 1px solid var(--border-color);
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            text-align: right;
-        }
-        
-        .trade-btn {
-            width: 100%;
-            padding: 10px;
+        h1 { color: #00e676; margin-bottom: 0.5rem; }
+        p { color: #b0b0b0; margin-bottom: 2rem; }
+        .btn {
+            background-color: #00e676;
+            color: #121212;
             border: none;
-            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 1rem;
             font-weight: bold;
-            color: #000;
+            border-radius: 6px;
             cursor: pointer;
-            margin-top: 5px;
+            width: 100%;
+            transition: background-color 0.2s;
         }
-        
-        .buy-btn { background-color: var(--success); color: white; }
-        .sell-btn { background-color: var(--danger); color: white; }
-        
-        /* Bottom Navigation Bar */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            z-index: 999;
-        }
-        
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 0.75rem;
-            color: var(--muted-text);
-            cursor: pointer;
-            width: 20%;
-            padding: 5px 0;
-        }
-        
-        .nav-item.active { color: var(--primary); }
-        
-        .nav-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .btn:hover { background-color: #00c465; }
+        #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="logo">⚡ LIQUID</div>
-        <div class="market-selector">
-            <span>BTC / USDT</span>
-            <span style="color: var(--success)">+2.45%</span>
-        </div>
-    </div>
+<div class="container">
+    <h1>Leverage Bot</h1>
+    <p>Tap below to fire a test market order on Bitget.</p>
+    
+    <button class="btn" onclick="triggerTrade()">Buy BTC ($10 USDT)</button>
+    
+    <div id="status">Waiting for action...</div>
+</div>
 
-    <div class="content" id="main-content">
-        
-        <div class="chart-container" id="tv_chart"></div>
-        
-        <div class="trading-panel">
-            
-            <div class="order-form">
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <button style="flex: 1; padding: 5px; background: var(--success); border: none; border-radius: 4px; color: white; font-size: 0.8rem;">Buy</button>
-                    <button style="flex: 1; padding: 5px; background: #2b3139; border: none; border-radius: 4px; color: var(--muted-text); font-size: 0.8rem;">Sell</button>
-                </div>
-                
-                <div class="input-group">
-                    <label>Price (USDT)</label>
-                    <input type="text" id="trade-price" value="64250.00">
-                </div>
-                
-                <div class="input-group">
-                    <label>Amount (BTC)</label>
-                    <input type="text" id="trade-amount" placeholder="0.01">
-                </div>
-                
-                <button class="trade-btn buy-btn" onclick="triggerTrade()">Buy BTC</button>
-            </div>
-            
-            <div class="order-book">
-                <div style="color: var(--muted-text); margin-bottom: 8px; font-size: 0.75rem;">Order Book</div>
-                <div class="asks">
-                    <div class="order-book-row"><span>64258.50</span><span>0.412</span></div>
-                    <div class="order-book-row"><span>64255.00</span><span>1.205</span></div>
-                    <div class="order-book-row"><span>64252.10</span><span>0.110</span></div>
-                </div>
-                <div style="text-align: center; font-weight: bold; padding: 5px 0; font-size: 0.9rem;">64250.00</div>
-                <div class="bids">
-                    <div class="order-book-row"><span>64248.00</span><span>0.850</span></div>
-                    <div class="order-book-row"><span>64245.50</span><span>2.114</span></div>
-                    <div class="order-book-row"><span>64240.00</span><span>0.500</span></div>
-                </div>
-            </div>
-            
-        </div>
+<script>
+    // Expand the Telegram Mini App to full screen
+    Telegram.WebApp.expand();
 
-    </div>
+    function triggerTrade() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = "Sending signal to Vercel...";
+        statusDiv.style.color = "#ffeb3b";
 
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('Spot')">
-            <span class="nav-icon">📊</span>
-            <span>Spot</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('Futures')">
-            <span class="nav-icon">📈</span>
-            <span>Futures</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('Auto')">
-            <span class="nav-icon">🤖</span>
-            <span>Auto</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('Signals')">
-            <span class="nav-icon">📡</span>
-            <span>Signals</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('Settings')">
-            <span class="nav-icon">⚙️</span>
-            <span>Settings</span>
-        </div>
-    </div>
+        // Your specific Vercel URL targeting the serverless endpoint
+        const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade";
 
-    <script>
-        // Initialize Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        function loadChart() {
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": "BINANCE:BTCUSDT",
-                "interval": "60",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#1e2329",
-                "enable_publishing": false,
-                "hide_top_toolbar": true,
-                "hide_legend": true,
-                "save_image": false,
-                "container_id": "tv_chart"
+        // We ping Vercel with a GET request
+        fetch(vercelUrl)
+            .then(response => response.text())
+            .then(data => {
+                statusDiv.innerText = data;
+                statusDiv.style.color = "#00e676";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusDiv.innerText = "Failed to connect to Vercel backend.";
+                statusDiv.style.color = "#f44336";
             });
-        }
-        
-        loadChart();
+    }
+</script>
 
-        function switchTab(tabName) {
-            const contentArea = document.getElementById('main-content');
-            document.querySelectorAll('.nav-item').forEach(item => { item.classList.remove('active'); });
-            event.currentTarget.classList.add('active');
-            
-            if (tabName === 'Spot') { location.reload(); } 
-            else if (tabName === 'Futures') {
-                contentArea.innerHTML = `<div style="padding: 20px; text-align: center;"><h2 style="color: var(--primary); margin-bottom: 15px;">Futures Trading</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p style="color: var(--muted-text);">Position: No Open Positions</p><hr style="border-color: var(--border-color); margin: 15px 0;"><div style="display: flex; gap: 10px;"><button style="flex: 1; padding: 10px; background: var(--success); border: none; border-radius: 4px; color: white;">Long</button><button style="flex: 1; padding: 10px; background: var(--danger); border: none; border-radius: 4px; color: white;">Short</button></div></div></div>`;
-            } else if (tabName === 'Auto') {
-                contentArea.innerHTML = `<div style="padding: 20px; text-align: center;"><h2 style="color: var(--primary); margin-bottom: 15px;">🤖 AI Auto-Trader</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p>Bot Status: <span style="color: var(--danger)">OFF</span></p><button style="width: 100%; margin-top: 15px; padding: 10px; background: var(--primary); border: none; border-radius: 4px; font-weight: bold; color: #000;">Turn Bot ON</button></div></div>`;
-            } else if (tabName === 'Signals') {
-                contentArea.innerHTML = `<div style="padding: 20px;"><h2 style="color: var(--primary); margin-bottom: 15px;">📡 High-Conviction Signals</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px;"><div style="display: flex; justify-content: space-between;"><span style="color: var(--success); font-weight:bold;">LONG BTC</span><span style="color: var(--muted-text)">2m ago</span></div><p style="font-size: 0.8rem; color: var(--muted-text); margin-top: 5px;">Leverage: 10x | Target: $68,000</p></div></div>`;
-            } else if (tabName === 'Settings') {
-                contentArea.innerHTML = `<div style="padding: 20px;"><h2 style="color: var(--primary); margin-bottom: 15px;">⚙️ Settings</h2><div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);"><p style="font-size: 0.9rem;">Connected Exchange: <b style="color: white">Bitget</b></p><button style="width: 100%; margin-top: 15px; padding: 10px; background: #2b3139; border: none; border-radius: 4px; color: white;">Disconnect API</button></div></div>`;
-            }
-        }
-
-        // 🔗 This is the invisible link strategy to bypass Apple's security blocks
-        function triggerTrade() {
-            const amount = document.getElementById('trade-amount').value || "0.01";
-            const price = document.getElementById('trade-price').value || "64250.00";
-            
-            const webhookUrl = `https://worker-production-b4fa.up.railway.app/api/trade?action=buy&amount=${amount}&price=${price}`;
-
-            // We build a temporary, fake HTML link and force a click on it
-            const a = document.createElement('a');
-            a.href = webhookUrl;
-            a.target = '_blank'; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            // Give the user visual feedback so they know something happened
-            alert("Order command sent to the trading bot!");
-        }
-    </script>
 </body>
 </html>
