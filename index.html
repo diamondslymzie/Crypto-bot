@@ -294,19 +294,25 @@
             const amount = document.getElementById('trade-amount').value || "0.01";
             const price = document.getElementById('trade-price').value || "64250.00";
             
-            // 🤖 A formatted text message the bot can easily read
-            const textMessage = `/trade buy ${amount} BTC at ${price}`;
+            // 🤖 A clean web URL that carries the trade data
+            const webhookUrl = `https://worker-production-b4fa.up.railway.app/api/trade?action=buy&amount=${amount}&price=${price}`;
 
-            try {
-                // Method 1: Tries to send it natively (requires Keyboard button)
-                tg.sendData(textMessage);
-            } catch (e) {
-                // Method 2: Fallback that types it manually if security blocks sendData
-                tg.sendText(textMessage);
+            // This forces Telegram to send a background HTTP request to your server!
+            // It completely bypasses CORS security on phones.
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", webhookUrl, true);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if (xhr.status == 200) {
+                        alert("Success: Order command sent to the trading bot!");
+                    } else {
+                        alert("Error: Server responded with code " + xhr.status);
+                    }
+                }
             }
             
-            // Auto-closes the window
-            tg.close();
+            xhr.send();
         }
     </script>
 </body>
