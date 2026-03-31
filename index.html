@@ -50,7 +50,7 @@
     <h1>Leverage Bot</h1>
     <p>Tap below to fire a test market order on Bitget.</p>
     
-    <button class="btn" onclick="triggerTrade()">Buy BTC ($1 USDT)</button>
+    <button class="btn" onclick="triggerTrade()">Buy BTC ($10 USDT)</button>
     
     <div id="status">Waiting for action...</div>
 </div>
@@ -60,21 +60,26 @@
 
     function triggerTrade() {
         const statusDiv = document.getElementById('status');
-        statusDiv.innerText = "Sending signal to Vercel...";
+        statusDiv.innerText = "Sending signal to Railway...";
         statusDiv.style.color = "#ffeb3b";
 
-        // Pointing directly to the .py file
-        const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade.py";
+        // !!! REPLACE THIS URL WITH YOUR ACTUAL RAILWAY DOMAIN !!!
+        const railwayUrl = "https://your-project-name.up.railway.app/trade";
 
-        fetch(vercelUrl)
-            .then(response => response.text())
+        fetch(railwayUrl)
+            .then(response => response.json())
             .then(data => {
-                statusDiv.innerText = data;
-                statusDiv.style.color = "#00e676";
+                if (data.status === "success") {
+                    statusDiv.innerText = "Success! " + data.message;
+                    statusDiv.style.color = "#00e676";
+                } else {
+                    statusDiv.innerText = "Error: " + data.message;
+                    statusDiv.style.color = "#f44336";
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
-                statusDiv.innerText = "Failed to connect to Vercel backend.";
+                statusDiv.innerText = "Failed to connect to Railway backend.";
                 statusDiv.style.color = "#f44336";
             });
     }
