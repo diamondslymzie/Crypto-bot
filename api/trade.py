@@ -19,10 +19,10 @@ class handler(BaseHTTPRequestHandler):
         })
 
         try:
-            # 3. Trigger a $10 USDT Market Buy Order
-            # Minimum on Bitget spot is usually $5, so $10 safely clears it!
+            # 3. Trigger a $1 USDT Market Buy Order
+            # Forcing Bitget to accept quote currency amount (USDT)
             symbol = 'BTC/USDT'
-            usdt_to_spend = 10.0
+            usdt_to_spend = 1.0
             
             order = exchange.create_order(
                 symbol, 'market', 'buy', None, None, {'quoteOrderQty': usdt_to_spend}
@@ -38,7 +38,6 @@ class handler(BaseHTTPRequestHandler):
         # 4. Send the response back to your Telegram Mini App
         self.send_response(status_code)
         self.send_header('Content-type', 'text/plain')
-        # This header prevents browser blocking (CORS issues)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
