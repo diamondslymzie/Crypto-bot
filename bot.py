@@ -9,7 +9,6 @@ import ccxt
 PORT = int(os.environ.get("PORT", 8080))
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
-# Bitget API credentials pulled securely from Railway Variables
 BG_API_KEY = os.environ.get("BITGET_API_KEY")
 BG_SECRET = os.environ.get("BITGET_SECRET_KEY")
 BG_PASSPHRASE = os.environ.get("BITGET_PASSPHRASE")
@@ -19,7 +18,6 @@ if not BOT_TOKEN:
 
 # --- 2. BITGET TRADING LOGIC ---
 def get_bitget_client():
-    """Initializes the Bitget connection using CCXT."""
     if not all([BG_API_KEY, BG_SECRET, BG_PASSPHRASE]):
         print("⚠️ Warning: Bitget API keys are missing in Railway variables!")
         return None
@@ -31,39 +29,38 @@ def get_bitget_client():
         'enableRateLimit': True,
     })
 
-async def execute_bitget_trade(action, amount, price):
-    """Executes a live market order on Bitget."""
+async def execute_bitget_trade(action):
+    """Executes a simple $10 USDT market buy to avoid size calculation errors."""
     exchange = get_bitget_client()
     if not exchange:
-        return "Failed: Bitget API keys are not configured in Railway."
+        return "Failed: API keys are not configured."
 
     symbol = 'BTC/USDT'
     
     try:
         loop = asyncio.get_event_loop()
         
-        # 🛠️ FIX FOR THE BITGET "LESS THAN 1 USDT" & COST ERROR:
-        # Fetch the current ticker price to calculate the correct cost
-        ticker = await loop.run_in_executor(None, lambda: exchange.fetch_ticker(symbol))
-        current_price = ticker['last']
-        
-        # Calculate how many USDT we need to spend to get that amount of BTC
-        # If your Mini App says amount=0.01, and BTC is at $60,000, this makes it $600.
-        total_cost_usdt = float(amount) * current_price
-        
-        print(f"🔄 Sending {action.upper()} order. Total Cost: ${total_cost_usdt:.2f} USDT")
-        
         if action.lower() == 'buy':
-            # 🚀 For a Market Buy, CCXT expects the amount of USDT you want to SPEND, not the BTC amount!
+            # 🚀 Hardcoded to spend exactly 10 USDT to safely clear Bitget's $5 minimum limit.
+            usdt_to_spend = 10.0 
+            print(f"🔄 Firing market buy for ${usdt_to_spend} USDT...")
+            
+            # Using custom params to force Bitget to accept quote currency amount (USDT)
             order = await loop.run_in_executor(
                 None, 
-                lambda: exchange.create_order(symbol, 'market', 'buy', total_cost_usdt)
+                lambda: exchange.create_order(
+                    symbol, 'market', 'buy', None, None, {'quoteOrderQty': usdt_to_spend}
+                )
             )
+            
         elif action.lower() == 'sell':
-            # Market sells still take the actual amount of BTC you want to sell
+            # For testing sells, we'll try to sell a tiny fraction (0.0002 BTC is about $12)
+            btc_to_sell = 0.0002
+            print(f"🔄 Firing market sell for {btc_to_sell} BTC...")
+            
             order = await loop.run_in_executor(
                 None, 
-                lambda: exchange.create_market_sell_order(symbol, float(amount))
+                lambda: exchange.create_market_sell_order(symbol, btc_to_sell)
             )
         else:
             return f"Failed: Invalid action '{action}'"
@@ -77,31 +74,24 @@ async def execute_bitget_trade(action, amount, price):
 
 # --- 3. TELEGRAM BOT LOGIC ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Answers the /start command in chat."""
     await update.message.reply_text("⚡ Liquid Leverage Bot is active and listening!")
 
-# --- 4. WEB APP LOGIC (Catches your Mini App Button) ---
+# --- 4. WEB APP LOGIC ---
 async def handle_webview_trade(request):
-    """Catches the link click from your index.html 'Buy BTC' button."""
     try:
         action = request.query.get('action', 'buy')
-        # Default to 0.001 BTC if nothing is passed to keep test orders smaller
-        amount = request.query.get('amount', '0.001') 
-        price = request.query.get('price', '64250.00')
-        
-        print(f"📥 [WEBHOOK] Received signal: {action.upper()} {amount} BTC")
+        print(f"📥 [WEBHOOK] Received signal to {action.upper()}")
 
-        # Trigger the Bitget trade live!
-        trade_result = await execute_bitget_trade(action, amount, price)
+        # Trigger the trade!
+        trade_result = await execute_bitget_trade(action)
 
-        # Return the actual success/failure message from Bitget to your screen!
         return web.Response(
-            text=f"Trade Status: {trade_result}\n\nProcessed: {action.upper()} {amount} BTC at market price.", 
+            text=f"Trade Status: {trade_result}", 
             status=200
         )
         
     except Exception as e:
-        print(f"❌ Error handling web trade: {e}")
+        print(f"❌ Error: {e}")
         return web.Response(text=f"Internal Server Error: {str(e)}", status=500)
 
 # --- 5. MAIN RUNNER ---
