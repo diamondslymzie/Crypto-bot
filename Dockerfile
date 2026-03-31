@@ -1,20 +1,18 @@
-# Use a super light, clean version of Python
+# Use a fast, official, pre-built Python environment
 FROM python:3.10-slim
 
-# Set the working directory inside the server
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy just the requirements file first to build the environment
+# Copy the requirements file and install the libraries
 COPY requirements.txt .
-
-# Install your Python packages
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your files over
+# Copy the rest of your bot's files into the container
 COPY . .
 
 # Expose the port Railway uses
-EXPOSE 5000
+EXPOSE 8080
 
-# Tell Gunicorn to run your app and bind it to the proper port
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# Command to turn on the bot
+CMD ["python", "bot.py"]
