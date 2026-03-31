@@ -38,7 +38,7 @@
             border-radius: 6px;
             cursor: pointer;
             width: 100%;
-            transition: background-color: 0.2s;
+            transition: background-color 0.2s;
         }
         .btn:hover { background-color: #00c465; }
         #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; }
@@ -63,8 +63,7 @@
         statusDiv.innerText = "Sending signal to Vercel...";
         statusDiv.style.color = "#ffeb3b";
 
-        // Forced standard GET request
-        fetch("https://crypto-bot-fawn.vercel.app/api/trade", { method: 'GET' })
+        fetch("https://crypto-bot-fawn.vercel.app/api/trade")
             .then(response => response.text())
             .then(data => {
                 statusDiv.innerText = data;
