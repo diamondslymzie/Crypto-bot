@@ -63,9 +63,8 @@
         statusDiv.innerText = "Sending signal to Vercel...";
         statusDiv.style.color = "#ffeb3b";
 
-        const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade";
-
-        fetch(vercelUrl)
+        // Forced standard GET request
+        fetch("https://crypto-bot-fawn.vercel.app/api/trade", { method: 'GET' })
             .then(response => response.text())
             .then(data => {
                 statusDiv.innerText = data;
