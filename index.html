@@ -63,8 +63,8 @@
         statusDiv.innerText = "Sending signal to Vercel...";
         statusDiv.style.color = "#ffeb3b";
 
-        // Added .py to target the script directly
-        const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade.py";
+        // Pointing back to the clean URL
+        const vercelUrl = "https://crypto-bot-fawn.vercel.app/api/trade";
 
         fetch(vercelUrl)
             .then(response => response.text())
