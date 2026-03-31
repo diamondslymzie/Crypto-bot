@@ -1,1 +1,7 @@
-{}
+{
+  "functions": {
+    "api/trade.py": {
+      "runtime": "@vercel/python"
+    }
+  }
+}
