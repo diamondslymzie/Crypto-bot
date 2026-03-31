@@ -42,24 +42,25 @@ async def execute_bitget_trade(action, amount, price):
     try:
         loop = asyncio.get_event_loop()
         
-        # 🛠️ FIX FOR THE "LESS THAN 1 USDT" ERROR:
-        # We fetch the actual current price to calculate the correct cost
+        # 🛠️ FIX FOR THE BITGET "LESS THAN 1 USDT" & COST ERROR:
+        # Fetch the current ticker price to calculate the correct cost
         ticker = await loop.run_in_executor(None, lambda: exchange.fetch_ticker(symbol))
         current_price = ticker['last']
         
         # Calculate how many USDT we need to spend to get that amount of BTC
+        # If your Mini App says amount=0.01, and BTC is at $60,000, this makes it $600.
         total_cost_usdt = float(amount) * current_price
         
-        print(f"🔄 Sending {action.upper()} order. Buying {amount} BTC at approx ${current_price:.2f} (Total Cost: ${total_cost_usdt:.2f})")
+        print(f"🔄 Sending {action.upper()} order. Total Cost: ${total_cost_usdt:.2f} USDT")
         
         if action.lower() == 'buy':
-            # Bitget wants the amount of USDT to spend for a market buy
+            # 🚀 For a Market Buy, CCXT expects the amount of USDT you want to SPEND, not the BTC amount!
             order = await loop.run_in_executor(
                 None, 
-                lambda: exchange.create_market_buy_order(symbol, total_cost_usdt)
+                lambda: exchange.create_order(symbol, 'market', 'buy', total_cost_usdt)
             )
         elif action.lower() == 'sell':
-            # Market sell still takes the actual amount of BTC you want to sell
+            # Market sells still take the actual amount of BTC you want to sell
             order = await loop.run_in_executor(
                 None, 
                 lambda: exchange.create_market_sell_order(symbol, float(amount))
@@ -84,7 +85,8 @@ async def handle_webview_trade(request):
     """Catches the link click from your index.html 'Buy BTC' button."""
     try:
         action = request.query.get('action', 'buy')
-        amount = request.query.get('amount', '0.01')
+        # Default to 0.001 BTC if nothing is passed to keep test orders smaller
+        amount = request.query.get('amount', '0.001') 
         price = request.query.get('price', '64250.00')
         
         print(f"📥 [WEBHOOK] Received signal: {action.upper()} {amount} BTC")
