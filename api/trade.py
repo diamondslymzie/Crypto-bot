@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 import ccxt
 
 class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def handle_request(self):
         # 1. Pull keys securely from Vercel environment variables
         api_key = os.environ.get("BITGET_API_KEY")
         secret = os.environ.get("BITGET_SECRET_KEY")
@@ -43,3 +43,11 @@ class handler(BaseHTTPRequestHandler):
         
         self.wfile.write(message.encode('utf-8'))
         return
+
+    # 🛠️ THIS FIXES THE 405 ERROR!
+    # No matter if the app sends a GET or a POST, we handle it the same way.
+    def do_GET(self):
+        self.handle_request()
+
+    def do_POST(self):
+        self.handle_request()
