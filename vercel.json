@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/trade.py": {
+    "api/*.py": {
       "runtime": "@vercel/python"
     }
   }
