@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liquid Leverage Trading</title>
+    <title>Liquid Leverage DEX</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -39,49 +41,87 @@
             cursor: pointer;
             width: 100%;
             transition: background-color: 0.2s;
+            margin-top: 1rem;
         }
         .btn:hover { background-color: #00c465; }
+        #ton-connect-btn {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
         #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Leverage Bot</h1>
-    <p>Tap below to fire a test market order on Bitget.</p>
+    <h1>Leverage DEX</h1>
+    <p>Connect your wallet to swap USDT for TON.</p>
     
-    <button class="btn" onclick="triggerTrade()">Buy BTC ($10 USDT)</button>
+    <div id="ton-connect-btn"></div>
     
-    <div id="status">Waiting for action...</div>
+    <button class="btn" onclick="triggerSwap()">Swap $1 USDT for TON</button>
+    
+    <div id="status">Please connect your wallet first.</div>
 </div>
 
 <script>
     Telegram.WebApp.expand();
 
-    function triggerTrade() {
+    // Initialize TON Connect
+    const tonConnectUI = new TONConnectUI.TonConnectUI({
+        manifestUrl: 'https://crypto-bot-fawn.vercel.app/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-btn'
+    });
+
+    // Listen for wallet connection changes
+    tonConnectUI.onStatusChange(wallet => {
         const statusDiv = document.getElementById('status');
-        statusDiv.innerText = "Sending signal to Railway...";
+        if (wallet) {
+            statusDiv.innerText = "Wallet connected! Ready to swap.";
+            statusDiv.style.color = "#00e676";
+        } else {
+            statusDiv.innerText = "Please connect your wallet first.";
+            statusDiv.style.color = "#888";
+        }
+    });
+
+    async function triggerSwap() {
+        const statusDiv = document.getElementById('status');
+        
+        if (!tonConnectUI.connected) {
+            statusDiv.innerText = "Error: Connect your wallet above first!";
+            statusDiv.style.color = "#f44336";
+            return;
+        }
+
+        statusDiv.innerText = "Waiting for wallet confirmation...";
         statusDiv.style.color = "#ffeb3b";
 
-        // Your live Railway URL added here
-        const railwayUrl = "https://leverage-bot-backend-production.up.railway.app/trade";
+        try {
+            // This is where we will construct the smart contract transaction
+            // Sending payload to Ston.fi or Dedust router
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 60, // 60 seconds
+                messages: [
+                    {
+                        address: "EQB566Inby_K8HnLUMe9QkXQW0u6-Ww9V_k0q82m0p_... (DEX Router)",
+                        amount: "1000000000", // 1 TON in nanotons
+                        payload: "te6cckEBAQEAAAAA..." // The smart contract instruction
+                    }
+                ]
+            };
 
-        fetch(railwayUrl)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    statusDiv.innerText = "Success! " + data.message;
-                    statusDiv.style.color = "#00e676";
-                } else {
-                    statusDiv.innerText = "Error: " + data.message;
-                    statusDiv.style.color = "#f44336";
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                statusDiv.innerText = "Failed to connect to Railway backend.";
-                statusDiv.style.color = "#f44336";
-            });
+            const result = await tonConnectUI.sendTransaction(transaction);
+            
+            statusDiv.innerText = "Transaction sent successfully!";
+            statusDiv.style.color = "#00e676";
+            
+        } catch (error) {
+            console.error('Error:', error);
+            statusDiv.innerText = "Transaction failed or rejected.";
+            statusDiv.style.color = "#f44336";
+        }
     }
 </script>
 
