@@ -44,6 +44,21 @@
             margin-top: 1rem;
         }
         .btn:hover { background-color: #00c465; }
+        
+        /* Fallback Native Button Styling */
+        .wallet-btn {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 1.5rem;
+        }
+        
         #ton-connect-btn {
             display: flex;
             justify-content: center;
@@ -60,6 +75,8 @@
     
     <div id="ton-connect-btn"></div>
     
+    <button class="wallet-btn" id="fallback-btn" onclick="openWalletModal()">Connect Wallet</button>
+    
     <button class="btn" onclick="triggerSwap()">Swap $1 USDT for TON</button>
     
     <div id="status">Please connect your wallet first.</div>
@@ -68,21 +85,37 @@
 <script>
     Telegram.WebApp.expand();
 
-    // Initialize TON Connect
-    const tonConnectUI = new TONConnectUI.TonConnectUI({
+    // Initialize TON Connect UI
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: 'https://crypto-bot-fawn.vercel.app/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-btn'
     });
 
+    // Programmatically open modal if user clicks the fallback button
+    async function openWalletModal() {
+        try {
+            await tonConnectUI.openModal();
+        } catch (error) {
+            console.error("Error opening modal:", error);
+            document.getElementById('status').innerText = "Failed to open wallet modal.";
+        }
+    }
+
     // Listen for wallet connection changes
     tonConnectUI.onStatusChange(wallet => {
         const statusDiv = document.getElementById('status');
+        const fallbackBtn = document.getElementById('fallback-btn');
+        
         if (wallet) {
             statusDiv.innerText = "Wallet connected! Ready to swap.";
             statusDiv.style.color = "#00e676";
+            fallbackBtn.innerText = "Wallet Connected ✅";
+            fallbackBtn.style.backgroundColor = "#2e7d32";
         } else {
             statusDiv.innerText = "Please connect your wallet first.";
             statusDiv.style.color = "#888";
+            fallbackBtn.innerText = "Connect Wallet";
+            fallbackBtn.style.backgroundColor = "#0088cc";
         }
     });
 
@@ -95,33 +128,10 @@
             return;
         }
 
-        statusDiv.innerText = "Waiting for wallet confirmation...";
+        statusDiv.innerText = "Feature coming soon: Routing payload to DEX...";
         statusDiv.style.color = "#ffeb3b";
-
-        try {
-            // This is where we will construct the smart contract transaction
-            // Sending payload to Ston.fi or Dedust router
-            const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 60, // 60 seconds
-                messages: [
-                    {
-                        address: "EQB566Inby_K8HnLUMe9QkXQW0u6-Ww9V_k0q82m0p_... (DEX Router)",
-                        amount: "1000000000", // 1 TON in nanotons
-                        payload: "te6cckEBAQEAAAAA..." // The smart contract instruction
-                    }
-                ]
-            };
-
-            const result = await tonConnectUI.sendTransaction(transaction);
-            
-            statusDiv.innerText = "Transaction sent successfully!";
-            statusDiv.style.color = "#00e676";
-            
-        } catch (error) {
-            console.error('Error:', error);
-            statusDiv.innerText = "Transaction failed or rejected.";
-            statusDiv.style.color = "#f44336";
-        }
+        
+        // DEX Smart contract execution code will go here!
     }
 </script>
 
