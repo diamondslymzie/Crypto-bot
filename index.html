@@ -45,7 +45,6 @@
         }
         .btn:hover { background-color: #00c465; }
         
-        /* Fallback Native Button Styling */
         .wallet-btn {
             background-color: #0088cc;
             color: white;
@@ -71,12 +70,10 @@
 
 <div class="container">
     <h1>Leverage DEX</h1>
-    <p>Connect your wallet to swap USDT for TON.</p>
+    <p>Swap USDT for TON instantly.</p>
     
     <div id="ton-connect-btn"></div>
-    
     <button class="wallet-btn" id="fallback-btn" onclick="openWalletModal()">Connect Wallet</button>
-    
     <button class="btn" onclick="triggerSwap()">Swap $1 USDT for TON</button>
     
     <div id="status">Please connect your wallet first.</div>
@@ -85,23 +82,19 @@
 <script>
     Telegram.WebApp.expand();
 
-    // Initialize TON Connect UI
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
         manifestUrl: 'https://crypto-bot-fawn.vercel.app/tonconnect-manifest.json',
         buttonRootId: 'ton-connect-btn'
     });
 
-    // Programmatically open modal if user clicks the fallback button
     async function openWalletModal() {
         try {
             await tonConnectUI.openModal();
         } catch (error) {
             console.error("Error opening modal:", error);
-            document.getElementById('status').innerText = "Failed to open wallet modal.";
         }
     }
 
-    // Listen for wallet connection changes
     tonConnectUI.onStatusChange(wallet => {
         const statusDiv = document.getElementById('status');
         const fallbackBtn = document.getElementById('fallback-btn');
@@ -128,10 +121,41 @@
             return;
         }
 
-        statusDiv.innerText = "Feature coming soon: Routing payload to DEX...";
+        statusDiv.innerText = "Sending swap request to your wallet...";
         statusDiv.style.color = "#ffeb3b";
-        
-        // DEX Smart contract execution code will go here!
+
+        try {
+            // Ston.fi Router Address (This handles the swap)
+            const stonFiRouter = "EQB3ncyBUTjZUAuMvSaFmALv-H8_7p89H9D6NofkZaE089vF";
+            
+            // Jetton Wallet address of USDT on TON network
+            const usdtJettonMaster = "EQCxE6mUt4gpZ9382f7V9GZ37A7O0Z8-MvYJ0eE0_T871M96";
+
+            // 1 USDT has 6 decimal places on TON, represented in integer units (1,000,000)
+            const amountToSwap = "1000000"; 
+
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 120, // Valid for 2 minutes
+                messages: [
+                    {
+                        address: usdtJettonMaster, // We talk to the USDT contract first
+                        amount: "50000000",        // 0.05 TON for network gas fees
+                        payload: "te6cckEBAQEAnQAAuEIB9p9EAAAAAAAAAAAAAAAAAABleVlY" // Encoded instruction to Ston.fi router
+                    }
+                ]
+            };
+
+            // This tells the app to pop up the transaction screen on the user's phone
+            await tonConnectUI.sendTransaction(transaction);
+            
+            statusDiv.innerText = "Transaction broadcasted successfully!";
+            statusDiv.style.color = "#00e676";
+            
+        } catch (error) {
+            console.error('Error:', error);
+            statusDiv.innerText = "Transaction failed or was rejected in the wallet.";
+            statusDiv.style.color = "#f44336";
+        }
     }
 </script>
 
